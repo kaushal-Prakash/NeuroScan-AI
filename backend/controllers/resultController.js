@@ -1,5 +1,6 @@
 import Result from "../models/Result.js";
 import User from "../models/User.js";
+import { checkScanEligibility, recordScanUsage } from "./subscriptionController.js";
 
 const getAllResults = async (req, res) => {
   try {
@@ -100,9 +101,14 @@ const saveFlaskResult = async (req, res) => {
     
     if (!eligibility.eligible) {
       return res.status(402).json({ 
+        success: false,
         error: eligibility.reason,
+        code: eligibility.code,
         requiresUpgrade: eligibility.upgradeRequired || false,
-        scansRemaining: eligibility.scansRemaining,
+        scansUsed: eligibility.scansUsed || 0,
+        scansRemaining: eligibility.scansRemaining || 0,
+        limit: eligibility.limit || 0,
+        period: eligibility.period || null,
         message: eligibility.reason
       });
     }
@@ -110,7 +116,10 @@ const saveFlaskResult = async (req, res) => {
     // Validate tumor case
     const validCases = ['pituitary', 'glioma', 'meningioma', 'notumor'];
     if (!validCases.includes(tumor_type)) {
-      return res.status(400).json({ error: 'Invalid tumor case type' });
+      return res.status(400).json({ 
+        success: false,
+        error: 'Invalid tumor case type' 
+      });
     }
 
     // Create new result
@@ -135,18 +144,34 @@ const saveFlaskResult = async (req, res) => {
     }
 
     res.status(201).json({
+      success: true,
       message: 'Result saved successfully',
-      result,
+      result: {
+        id: result._id,
+        case: result.case,
+        confidence: result.confidence,
+        date: result.date,
+        tumorType: result.tumorType
+      },
       subscription: {
-        scansRemaining: usage.scansRemaining || eligibility.scansRemaining,
-        scansUsed: usage.scansUsed || 0,
-        userType: eligibility.userType,
-        message: eligibility.message
+        eligible: usage.eligibility.eligible,
+        scansRemaining: usage.eligibility.scansRemaining,
+        scansUsed: usage.eligibility.scansUsed || 0,
+        userType: usage.eligibility.userType,
+        message: usage.eligibility.message,
+        period: usage.eligibility.period
+      },
+      usage: {
+        totalScans: usage.totalScans,
+        weeklyScans: usage.weeklyScans
       }
     });
   } catch (error) {
     console.error("Error in saveFlaskResult:", error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
   }
 };
 

@@ -77,40 +77,12 @@ const TumorModel = () => {
 
     const formData = new FormData();
     formData.append("file", file);
-    let subscriptionStatus = null;
+
     try {
-      // Fetch existing subscriptions to refresh session
-      const subscriptionResponse = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/subscriptions/status`,
-        { withCredentials: true }
-      );
-
-      if (subscriptionResponse.data.success) {
-        subscriptionStatus = subscriptionResponse.data.subscription;
-        console.log("Subscription status:", subscriptionStatus);
-
-        // Check if user is eligible
-        if (!subscriptionStatus.eligible) {
-          setProgress(0);
-          setIsLoading(false);
-          setError(subscriptionStatus.message);
-
-          // Show upgrade modal if required
-          if (subscriptionStatus.requiresUpgrade) {
-            setShowUpgradeModal(true);
-          }
-          return;
-        }
-      }
-    } catch (error) {
-      console.error("Error geting subscriptions :", error);
-    }
-    try {
-      console.log("Sending MRI image for analysis...");
-
-      // First, get the current user's ID from your Node.js backend
-      let userId = "demo_user"; // Default
-
+      // Get user ID first
+      let userId = "demo_user";
+      let userEmail = "demo@example.com";
+      
       try {
         const userResponse = await axios.get(
           `${process.env.NEXT_PUBLIC_API_URL}/auth/get-user`,
@@ -118,25 +90,28 @@ const TumorModel = () => {
         );
         if (userResponse.data?.user?._id) {
           userId = userResponse.data.user._id;
+          userEmail = userResponse.data.user.email;
         }
       } catch (userError) {
         console.log("Could not fetch user ID, using demo user");
       }
 
-      // Make the prediction request to Flask
+      // Make prediction request to Flask WITH subscription check
+      console.log("Sending MRI image for analysis...");
       const response = await axios.post(
         "http://127.0.0.1:5000/api/predict",
         formData,
         {
           headers: {
             "Content-Type": "multipart/form-data",
-            "X-User-Id": userId, // Send user ID to Flask
+            "X-User-Id": userId,
+            "X-User-Email": userEmail
           },
           timeout: 60000,
         }
       );
 
-      console.log("Response received:", response.data);
+      console.log("AI Analysis Response:", response.data);
 
       setProgress(100);
 
@@ -150,17 +125,43 @@ const TumorModel = () => {
         throw new Error("Invalid response from server");
       }
 
-      // Save result to Node.js/MongoDB backend
+      // Save result to Node.js backend
+      let savedResult = null;
       try {
-        await axios.post(
+        const saveResponse = await axios.post(
           `${process.env.NEXT_PUBLIC_API_URL}/results/save-flask-result`,
           data,
           { withCredentials: true }
         );
-        console.log("Result saved to MongoDB");
+        
+        console.log("Save Result Response:", saveResponse.data);
+        savedResult = saveResponse.data;
+        
+        // Check if save was blocked due to subscription limits
+        if (!saveResponse.data.success) {
+          if (saveResponse.data.requiresUpgrade) {
+            setError(saveResponse.data.message);
+            setShowUpgradeModal(true);
+            setIsLoading(false);
+            return;
+          }
+          throw new Error(saveResponse.data.error || "Failed to save result");
+        }
+        
       } catch (saveError) {
-        console.warn("Could not save to MongoDB:", saveError.message);
-        // Continue even if save fails
+        console.error("Save error details:", saveError.response?.data || saveError.message);
+        
+        // Handle subscription limit errors
+        if (saveError.response?.status === 402) {
+          setError(saveError.response.data.message);
+          if (saveError.response.data.requiresUpgrade) {
+            setShowUpgradeModal(true);
+          }
+          setIsLoading(false);
+          return;
+        }
+        
+        throw new Error("Failed to save scan result. Please try again.");
       }
 
       // Extract data from JSON response
@@ -201,7 +202,7 @@ const TumorModel = () => {
         timestamp: data.timestamp || Date.now(),
         classIndex: data.class_index || 0,
         probabilities: probabilities,
-        _id: data.mongo_id || `scan_${data.timestamp || Date.now()}`,
+        _id: savedResult?.result?._id || data.mongo_id || `scan_${data.timestamp || Date.now()}`,
         date: new Date().toISOString(),
         userId: userId,
         createdAt: new Date().toISOString(),
@@ -211,18 +212,20 @@ const TumorModel = () => {
       console.log("Setting results:", result);
       setResults(result);
       setProcessedImage(imageUrl);
+
     } catch (err) {
       console.error("Analysis error details:", err);
-
-      // Better error messages
-      if (err.code === "ERR_NETWORK") {
-        setError(
-          "Network error: Cannot connect to Flask server. Make sure it's running on port 5000."
-        );
+      
+      // Handle subscription errors
+      if (err.response?.status === 402) {
+        setError(err.response.data.message);
+        if (err.response.data.requiresUpgrade) {
+          setShowUpgradeModal(true);
+        }
+      } else if (err.code === "ERR_NETWORK") {
+        setError("Network error: Cannot connect to server.");
       } else if (err.code === "ECONNABORTED") {
-        setError(
-          "Request timeout. The image might be too large or the server is taking too long to respond."
-        );
+        setError("Request timeout. The image might be too large or the server is taking too long to respond.");
       } else if (err.response?.data?.message) {
         setError(`Server error: ${err.response.data.message}`);
       } else if (err.response?.data?.error) {
@@ -230,10 +233,10 @@ const TumorModel = () => {
       } else if (err.message) {
         setError(err.message);
       } else {
-        setError(
-          "An unexpected error occurred during analysis. Please try again."
-        );
+        setError("An unexpected error occurred during analysis. Please try again.");
       }
+      
+      setResults(null);
     } finally {
       setIsLoading(false);
     }
