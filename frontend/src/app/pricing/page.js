@@ -245,7 +245,7 @@ const EnhancedUPIPayment = ({ plan, isOpen, onClose, onSuccess }) => {
                     onClick={() => setStep("upload")}
                     className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600"
                   >
-                    I've Paid
+                    I&apos;ve Paid
                   </Button>
                 </div>
               </motion.div>
