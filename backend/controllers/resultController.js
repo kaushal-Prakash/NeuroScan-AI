@@ -171,11 +171,76 @@ const saveFlaskResult = async (req, res) => {
   }
 };
 
+const syncResults = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    
+    // 1. Get results from Flask MongoDB
+    let flaskResults = [];
+    try {
+      const response = await axios.get('http://127.0.0.1:5000/api/user/results', {
+        headers: {
+          'X-User-Id': userId.toString()
+        }
+      });
+      if (response.data.status === 'success') {
+        flaskResults = response.data.results;
+      }
+    } catch (flaskError) {
+      console.log('Could not fetch from Flask:', flaskError.message);
+    }
+    
+    // 2. Get results from Node.js MongoDB
+    const nodeResults = await Result.find({ userId: userId });
+    
+    // 3. Combine and deduplicate
+    const allResults = [...nodeResults];
+    
+    for (const flaskResult of flaskResults) {
+      // Check if result already exists in Node.js DB
+      const exists = allResults.some(nodeResult => 
+        nodeResult.case === flaskResult.case &&
+        new Date(nodeResult.date).getTime() === new Date(flaskResult.date).getTime() &&
+        nodeResult.confidence === flaskResult.confidence
+      );
+      
+      if (!exists) {
+        // Save Flask result to Node.js DB
+        const newResult = new Result({
+          userId: userId,
+          case: flaskResult.case,
+          confidence: flaskResult.confidence,
+          date: flaskResult.date,
+          imageUrl: flaskResult.imageUrl,
+          tumorType: flaskResult.tumorType,
+          probabilities: flaskResult.probabilities,
+          hasTumor: flaskResult.hasTumor
+        });
+        await newResult.save();
+        allResults.push(newResult);
+      }
+    }
+    
+    // 4. Return combined results
+    res.status(200).json({
+      message: 'Results synced successfully',
+      totalResults: allResults.length,
+      newFromFlask: flaskResults.length,
+      existingInNode: nodeResults.length,
+      results: allResults.sort((a, b) => new Date(b.date) - new Date(a.date))
+    });
+    
+  } catch (error) {
+    console.error('Error in syncResults:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
 
 export {
   getAllResults,
   createResult,
   getResultById,
   deleteResult,
-  saveFlaskResult
+  saveFlaskResult,
+  syncResults
 };

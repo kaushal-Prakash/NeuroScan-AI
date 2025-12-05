@@ -11,7 +11,8 @@ import {
   PlusCircle,
   Brain,
   FileText,
-  TrendingUp
+  TrendingUp,
+  RefreshCw
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -44,29 +45,118 @@ function Dashboard() {
   const [user, setUser] = useState(null);
   const [results, setResults] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [source, setSource] = useState(''); // Track where results came from
+
+  const fetchUserData = async () => {
+    try {
+      // Get user data from Node.js backend
+      const userData = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/auth/get-user`, {
+        withCredentials: true,
+      });
+      setUser(userData.data.user);
+      
+      let allResults = [];
+      let resultSource = '';
+      
+      // Try to get results from Flask MongoDB first
+      try {
+        const userId = userData.data.user?._id || "demo_user";
+        const flaskResults = await axios.get(
+          "http://127.0.0.1:5000/api/user/results",
+          {
+            headers: {
+              "X-User-Id": userId
+            }
+          }
+        );
+        
+        if (flaskResults.data.status === "success" && flaskResults.data.results.length > 0) {
+          console.log(`✅ Found ${flaskResults.data.results.length} results from Flask MongoDB`);
+          allResults = flaskResults.data.results.map(result => ({
+            ...result,
+            _id: result._id || result.id,
+            case: result.case || result.tumor_type,
+            confidence: result.confidence || 0,
+            date: result.date || result.createdAt,
+            tumorType: result.tumorType || result.diagnosis
+          }));
+          resultSource = 'flask';
+        }
+      } catch (flaskError) {
+        console.log("⚠️ Could not fetch from Flask MongoDB:", flaskError.message);
+      }
+      
+      // If no Flask results, try Node.js backend
+      if (allResults.length === 0) {
+        try {
+          const nodeResults = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/results/get-user-results`, {
+            withCredentials: true,
+          });
+          
+          if (nodeResults.data && nodeResults.data.length > 0) {
+            console.log(`✅ Found ${nodeResults.data.length} results from Node.js MongoDB`);
+            allResults = nodeResults.data;
+            resultSource = 'nodejs';
+          }
+        } catch (nodeError) {
+          console.log("⚠️ Could not fetch from Node.js MongoDB:", nodeError.message);
+        }
+      }
+      
+      // If still no results, show mock data for demo
+      if (allResults.length === 0) {
+        console.log("⚠️ No results found, showing mock data");
+        allResults = getMockResults();
+        resultSource = 'mock';
+      }
+      
+      setResults(allResults);
+      setSource(resultSource);
+      
+    } catch (error) {
+      console.error("Failed to fetch user data:", error);
+      // Show mock data on error
+      setResults(getMockResults());
+      setSource('mock');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const userData = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/auth/get-user`, {
-          withCredentials: true,
-        });
-        const userResults = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/results/get-user-results`, {
-          withCredentials: true,
-        });
-        console.log(userResults.data);
-        setUser(userData.data.user);
-        setResults(userResults.data);
-      } catch (error) {
-        console.error("Failed to fetch user data:", error);
-        setResults([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchUserData();
   }, []);
+
+  // Helper function for mock data
+  const getMockResults = () => {
+    const now = new Date();
+    return [
+      {
+        _id: "1",
+        case: "pituitary",
+        confidence: 0.94,
+        date: new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        tumorType: "Pituitary Tumor",
+        imageUrl: "https://via.placeholder.com/300x300/3B82F6/ffffff?text=Pituitary"
+      },
+      {
+        _id: "2",
+        case: "glioma",
+        confidence: 0.87,
+        date: new Date(now - 3 * 24 * 60 * 60 * 1000).toISOString(),
+        tumorType: "Glioma Tumor",
+        imageUrl: "https://via.placeholder.com/300x300/8B5CF6/ffffff?text=Glioma"
+      },
+      {
+        _id: "3",
+        case: "notumor",
+        confidence: 0.96,
+        date: new Date(now - 1 * 24 * 60 * 60 * 1000).toISOString(),
+        tumorType: "No Tumor",
+        imageUrl: "https://via.placeholder.com/300x300/6B7280/ffffff?text=No+Tumor"
+      }
+    ];
+  };
 
   // Prepare data for tumor classification chart
   const chartData = {
@@ -79,28 +169,28 @@ function Dashboard() {
       {
         label: 'Pituitary Tumor',
         data: results.length > 0 
-          ? results.map(result => result.case === 'pituitary' ? result.confidence * 100 : 0)
+          ? results.map(result => result.case === 'pituitary' ? (result.confidence || 0) * 100 : 0)
           : [],
         backgroundColor: 'rgba(59, 130, 246, 0.8)', // Blue
       },
       {
         label: 'Glioma Tumor',
         data: results.length > 0 
-          ? results.map(result => result.case === 'glioma' ? result.confidence * 100 : 0)
+          ? results.map(result => result.case === 'glioma' ? (result.confidence || 0) * 100 : 0)
           : [],
         backgroundColor: 'rgba(139, 92, 246, 0.8)', // Purple
       },
       {
         label: 'Meningioma Tumor',
         data: results.length > 0 
-          ? results.map(result => result.case === 'meningioma' ? result.confidence * 100 : 0)
+          ? results.map(result => result.case === 'meningioma' ? (result.confidence || 0) * 100 : 0)
           : [],
         backgroundColor: 'rgba(16, 185, 129, 0.8)', // Green
       },
       {
         label: 'No Tumor',
         data: results.length > 0 
-          ? results.map(result => result.case === 'notumor' ? result.confidence * 100 : 0)
+          ? results.map(result => result.case === 'notumor' ? (result.confidence || 0) * 100 : 0)
           : [],
         backgroundColor: 'rgba(107, 114, 128, 0.8)', // Gray
       },
@@ -113,10 +203,10 @@ function Dashboard() {
     datasets: [
       {
         data: [
-          results.filter(r => r.case === 'pituitary').length,
-          results.filter(r => r.case === 'glioma').length,
-          results.filter(r => r.case === 'meningioma').length,
-          results.filter(r => r.case === 'notumor').length
+          results.filter(r => (r.case || '').toLowerCase() === 'pituitary').length,
+          results.filter(r => (r.case || '').toLowerCase() === 'glioma').length,
+          results.filter(r => (r.case || '').toLowerCase() === 'meningioma').length,
+          results.filter(r => (r.case || '').toLowerCase() === 'notumor').length
         ],
         backgroundColor: [
           'rgba(59, 130, 246, 0.8)',
@@ -167,33 +257,36 @@ function Dashboard() {
 
   // Calculate statistics
   const totalScans = results.length;
-  const tumorScans = results.filter(r => r.case !== 'notumor').length;
-  const pituitaryScans = results.filter(r => r.case === 'pituitary').length;
-  const gliomaScans = results.filter(r => r.case === 'glioma').length;
-  const meningiomaScans = results.filter(r => r.case === 'meningioma').length;
-  const noTumorScans = results.filter(r => r.case === 'notumor').length;
+  const tumorScans = results.filter(r => (r.case || '').toLowerCase() !== 'notumor').length;
+  const pituitaryScans = results.filter(r => (r.case || '').toLowerCase() === 'pituitary').length;
+  const gliomaScans = results.filter(r => (r.case || '').toLowerCase() === 'glioma').length;
+  const meningiomaScans = results.filter(r => (r.case || '').toLowerCase() === 'meningioma').length;
+  const noTumorScans = results.filter(r => (r.case || '').toLowerCase() === 'notumor').length;
   const detectionRate = totalScans > 0 ? Math.round((tumorScans / totalScans) * 100) : 0;
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen flex flex-col items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+        <p className="text-gray-600">Loading your scan history...</p>
       </div>
     );
   }
 
   const getCaseDisplayName = (caseType) => {
-    switch(caseType) {
+    const caseStr = (caseType || '').toLowerCase();
+    switch(caseStr) {
       case 'pituitary': return 'Pituitary Tumor';
       case 'glioma': return 'Glioma Tumor';
       case 'meningioma': return 'Meningioma Tumor';
       case 'notumor': return 'No Tumor';
-      default: return caseType;
+      default: return caseType || 'Unknown';
     }
   };
 
   const getCaseColor = (caseType) => {
-    switch(caseType) {
+    const caseStr = (caseType || '').toLowerCase();
+    switch(caseStr) {
       case 'pituitary': return 'bg-blue-100 text-blue-800';
       case 'glioma': return 'bg-purple-100 text-purple-800';
       case 'meningioma': return 'bg-green-100 text-green-800';
@@ -203,7 +296,8 @@ function Dashboard() {
   };
 
   const getCaseBadgeVariant = (caseType) => {
-    switch(caseType) {
+    const caseStr = (caseType || '').toLowerCase();
+    switch(caseStr) {
       case 'pituitary': return 'default';
       case 'glioma': return 'secondary';
       case 'meningioma': return 'outline';
@@ -212,22 +306,49 @@ function Dashboard() {
     }
   };
 
+  const getSourceBadge = () => {
+    switch(source) {
+      case 'flask':
+        return <Badge className="bg-green-600 hover:bg-green-700 ml-2">Flask Database</Badge>;
+      case 'nodejs':
+        return <Badge className="bg-blue-600 hover:bg-blue-700 ml-2">Node.js Database</Badge>;
+      case 'mock':
+        return <Badge variant="outline" className="ml-2">Demo Data</Badge>;
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white p-6">
       <div className="max-w-7xl mx-auto">
         <header className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <Brain className="h-8 w-8 text-blue-600" />
-            <h1 className="text-3xl font-bold text-gray-900">NeuroScan Dashboard</h1>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <Brain className="h-8 w-8 text-blue-600" />
+              <h1 className="text-3xl font-bold text-gray-900">NeuroScan Dashboard</h1>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={fetchUserData}
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Refresh
+            </Button>
           </div>
-          <p className="text-gray-600">
-            Welcome back, <span className="font-semibold text-blue-600">{user?.name}</span>
+          <div className="flex items-center flex-wrap gap-2">
+            <p className="text-gray-600">
+              Welcome back, <span className="font-semibold text-blue-600">{user?.name || 'User'}</span>
+            </p>
             {user?.role === 'doctor' && (
-              <Badge className="ml-2 bg-blue-600 hover:bg-blue-700">
+              <Badge className="bg-blue-600 hover:bg-blue-700">
                 Medical Professional
               </Badge>
             )}
-          </p>
+            {getSourceBadge()}
+          </div>
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
@@ -247,7 +368,7 @@ function Dashboard() {
                   </div>
                   <div>
                     <p className="text-sm font-medium">Name</p>
-                    <p className="text-sm text-gray-600">{user?.name}</p>
+                    <p className="text-sm text-gray-600">{user?.name || 'Not available'}</p>
                   </div>
                 </div>
 
@@ -257,7 +378,7 @@ function Dashboard() {
                   </div>
                   <div>
                     <p className="text-sm font-medium">Email</p>
-                    <p className="text-sm text-gray-600">{user?.email}</p>
+                    <p className="text-sm text-gray-600">{user?.email || 'Not available'}</p>
                   </div>
                 </div>
 
@@ -301,13 +422,20 @@ function Dashboard() {
           {/* Stats Overview */}
           <Card className="lg:col-span-3 border-0 shadow-lg">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Activity className="h-5 w-5 text-blue-600" />
-                MRI Scan Statistics
-              </CardTitle>
-              <CardDescription>
-                Overview of your brain tumor detection scans
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Activity className="h-5 w-5 text-blue-600" />
+                    MRI Scan Statistics
+                  </CardTitle>
+                  <CardDescription>
+                    Overview of your brain tumor detection scans
+                  </CardDescription>
+                </div>
+                <Badge variant="outline" className="text-xs">
+                  {totalScans} total scans
+                </Badge>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
@@ -410,6 +538,17 @@ function Dashboard() {
                   <PlusCircle className="h-4 w-4 mr-2" />
                   New MRI Scan
                 </Button>
+                {source === 'mock' && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="border-amber-200 text-amber-600 hover:bg-amber-50"
+                    onClick={() => window.location.href = '/services'}
+                  >
+                    <Brain className="h-4 w-4 mr-2" />
+                    Add Real Scans
+                  </Button>
+                )}
               </div>
             </div>
           </CardHeader>
@@ -427,15 +566,15 @@ function Dashboard() {
                   <div className="space-y-3">
                     {results.slice(0, 5).map((result, index) => (
                       <div 
-                        key={index} 
+                        key={result._id || index} 
                         className="flex items-center justify-between p-4 bg-gradient-to-r from-white to-gray-50 rounded-xl border hover:shadow-md transition-shadow"
                       >
                         <div className="flex items-center gap-4">
                           <div className={`p-3 rounded-xl ${getCaseColor(result.case)}`}>
                             <Brain className={`h-5 w-5 ${
-                              result.case === 'pituitary' ? 'text-blue-600' : 
-                              result.case === 'glioma' ? 'text-purple-600' : 
-                              result.case === 'meningioma' ? 'text-green-600' : 'text-gray-600'
+                              (result.case || '').toLowerCase() === 'pituitary' ? 'text-blue-600' : 
+                              (result.case || '').toLowerCase() === 'glioma' ? 'text-purple-600' : 
+                              (result.case || '').toLowerCase() === 'meningioma' ? 'text-green-600' : 'text-gray-600'
                             }`} />
                           </div>
                           <div>
@@ -462,7 +601,7 @@ function Dashboard() {
                         </div>
                         <div className="flex items-center gap-4">
                           <Badge variant={getCaseBadgeVariant(result.case)} className="text-sm">
-                            {Math.round(result.confidence * 100)}% confidence
+                            {Math.round((result.confidence || 0) * 100)}% confidence
                           </Badge>
                         </div>
                       </div>

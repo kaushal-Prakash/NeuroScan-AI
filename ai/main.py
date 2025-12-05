@@ -82,6 +82,52 @@ def save_result_to_mongodb(user_id, result_data):
         print(f"❌ Error saving to MongoDB: {e}")
         return None
 
+# Add this function to fetch results from MongoDB
+def get_user_results(user_id):
+    """Get all results for a specific user from MongoDB"""
+    try:
+        if results_collection is None:
+            print("⚠️ MongoDB not connected")
+            return []
+        
+        # Query results for the user
+        user_results = list(results_collection.find(
+            {"userId": user_id},
+            {"_id": 1, "case": 1, "confidence": 1, "date": 1, "imageUrl": 1, 
+             "tumorType": 1, "probabilities": 1, "hasTumor": 1, "createdAt": 1}
+        ).sort("date", -1))
+        
+        # Convert ObjectId to string for JSON serialization
+        for result in user_results:
+            result["_id"] = str(result["_id"])
+            result["id"] = str(result["_id"])  # Add id field for compatibility
+        
+        print(f"✅ Found {len(user_results)} results for user {user_id}")
+        return user_results
+    except Exception as e:
+        print(f"❌ Error fetching user results: {e}")
+        return []
+
+# Add this endpoint to Flask
+@app.route('/api/user/results', methods=['GET'])
+def get_user_results_api():
+    try:
+        # Get user ID from headers
+        user_id = request.headers.get('X-User-Id') or "demo_user"
+        
+        # Get results from MongoDB
+        results = get_user_results(user_id)
+        
+        return jsonify({
+            "status": "success",
+            "results": results,
+            "count": len(results)
+        })
+        
+    except Exception as e:
+        return jsonify({"status": "error", "message": f"Failed to fetch results: {str(e)}"}), 500
+    
+    
 @app.route('/api/health', methods=['GET'])
 def health_check():
     mongo_status = "connected" if results_collection is not None else "disconnected"
