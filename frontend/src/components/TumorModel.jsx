@@ -72,21 +72,37 @@ const TumorModel = () => {
 
     try {
       console.log("Sending MRI image for analysis...");
-      
-      // Make the prediction request
+
+      // First, get the current user's ID from your Node.js backend
+      let userId = "demo_user"; // Default
+
+      try {
+        const userResponse = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_URL}/auth/get-user`,
+          { withCredentials: true }
+        );
+        if (userResponse.data?.user?._id) {
+          userId = userResponse.data.user._id;
+        }
+      } catch (userError) {
+        console.log("Could not fetch user ID, using demo user");
+      }
+
+      // Make the prediction request to Flask
       const response = await axios.post(
         "http://127.0.0.1:5000/api/predict",
         formData,
         {
           headers: {
             "Content-Type": "multipart/form-data",
+            "X-User-Id": userId, // Send user ID to Flask
           },
-          timeout: 60000, // 60 second timeout
+          timeout: 60000,
         }
       );
-      
+
       console.log("Response received:", response.data);
-      
+
       setProgress(100);
 
       if (response.data.status === "error") {
@@ -94,9 +110,22 @@ const TumorModel = () => {
       }
 
       const data = response.data;
-      
+
       if (!data || data.status !== "success") {
         throw new Error("Invalid response from server");
+      }
+
+      // Save result to Node.js/MongoDB backend
+      try {
+        await axios.post(
+          `${process.env.NEXT_PUBLIC_API_URL}/results/save-flask-result`,
+          data,
+          { withCredentials: true }
+        );
+        console.log("Result saved to MongoDB");
+      } catch (saveError) {
+        console.warn("Could not save to MongoDB:", saveError.message);
+        // Continue even if save fails
       }
 
       // Extract data from JSON response
@@ -109,7 +138,7 @@ const TumorModel = () => {
         pituitary: 0.25,
         glioma: 0.25,
         meningioma: 0.25,
-        notumor: 0.25
+        notumor: 0.25,
       };
 
       // Format tumor type for display
@@ -129,32 +158,36 @@ const TumorModel = () => {
         originalTumorType: tumorType,
         hasTumor: hasTumor,
         confidence: confidence,
-        confidencePercentage: data.confidence_percentage || `${(confidence * 100).toFixed(2)}%`,
+        confidencePercentage:
+          data.confidence_percentage || `${(confidence * 100).toFixed(2)}%`,
         imageUrl: imageUrl,
         filePath: data.file_path || `/uploads/${file.name}`,
         analysisDate: new Date().toISOString(),
         timestamp: data.timestamp || Date.now(),
         classIndex: data.class_index || 0,
         probabilities: probabilities,
-        _id: `scan_${data.timestamp || Date.now()}`,
+        _id: data.mongo_id || `scan_${data.timestamp || Date.now()}`,
         date: new Date().toISOString(),
-        userId: "current_user",
+        userId: userId,
         createdAt: new Date().toISOString(),
-        diagnosis: diagnosis
+        diagnosis: diagnosis,
       };
 
       console.log("Setting results:", result);
       setResults(result);
       setProcessedImage(imageUrl);
-
     } catch (err) {
       console.error("Analysis error details:", err);
-      
+
       // Better error messages
-      if (err.code === 'ERR_NETWORK') {
-        setError("Network error: Cannot connect to Flask server. Make sure it's running on port 5000.");
-      } else if (err.code === 'ECONNABORTED') {
-        setError("Request timeout. The image might be too large or the server is taking too long to respond.");
+      if (err.code === "ERR_NETWORK") {
+        setError(
+          "Network error: Cannot connect to Flask server. Make sure it's running on port 5000."
+        );
+      } else if (err.code === "ECONNABORTED") {
+        setError(
+          "Request timeout. The image might be too large or the server is taking too long to respond."
+        );
       } else if (err.response?.data?.message) {
         setError(`Server error: ${err.response.data.message}`);
       } else if (err.response?.data?.error) {
@@ -162,7 +195,9 @@ const TumorModel = () => {
       } else if (err.message) {
         setError(err.message);
       } else {
-        setError("An unexpected error occurred during analysis. Please try again.");
+        setError(
+          "An unexpected error occurred during analysis. Please try again."
+        );
       }
     } finally {
       setIsLoading(false);
@@ -204,7 +239,7 @@ const TumorModel = () => {
 
     // Result status with color coding
     const resultColor = results.hasTumor ? [220, 53, 69] : [40, 167, 69];
-    
+
     doc.setFontSize(12);
     doc.setTextColor(...resultColor);
     doc.text(`Diagnosis: ${results.tumorType}`, 20, 90);
@@ -216,9 +251,15 @@ const TumorModel = () => {
     doc.text("Probability Distribution:", 20, 120);
 
     const probabilities = [
-      `Pituitary Tumor: ${Math.round((results.probabilities?.pituitary || 0) * 100)}%`,
-      `Glioma Tumor: ${Math.round((results.probabilities?.glioma || 0) * 100)}%`,
-      `Meningioma Tumor: ${Math.round((results.probabilities?.meningioma || 0) * 100)}%`,
+      `Pituitary Tumor: ${Math.round(
+        (results.probabilities?.pituitary || 0) * 100
+      )}%`,
+      `Glioma Tumor: ${Math.round(
+        (results.probabilities?.glioma || 0) * 100
+      )}%`,
+      `Meningioma Tumor: ${Math.round(
+        (results.probabilities?.meningioma || 0) * 100
+      )}%`,
       `No Tumor: ${Math.round((results.probabilities?.notumor || 0) * 100)}%`,
     ];
 
@@ -228,8 +269,16 @@ const TumorModel = () => {
 
     // Add analysis details
     doc.text("Analysis Details:", 20, 175);
-    doc.text(`Analysis Date: ${new Date(results.analysisDate).toLocaleDateString()}`, 20, 185);
-    doc.text(`Analysis Time: ${new Date(results.analysisDate).toLocaleTimeString()}`, 20, 192);
+    doc.text(
+      `Analysis Date: ${new Date(results.analysisDate).toLocaleDateString()}`,
+      20,
+      185
+    );
+    doc.text(
+      `Analysis Time: ${new Date(results.analysisDate).toLocaleTimeString()}`,
+      20,
+      192
+    );
     doc.text(`Patient ID: ${results.userId}`, 20, 199);
 
     // Add footer
@@ -280,7 +329,7 @@ const TumorModel = () => {
   };
 
   const getTumorColor = (tumorType) => {
-    switch(tumorType) {
+    switch (tumorType) {
       case "Pituitary Tumor":
         return "bg-blue-100 text-blue-800 border-blue-200";
       case "Glioma Tumor":
@@ -307,7 +356,8 @@ const TumorModel = () => {
                 Brain Tumor MRI Analysis
               </CardTitle>
               <CardDescription className="text-gray-600 mt-1">
-                Upload a brain MRI scan to analyze for tumors (Pituitary, Glioma, Meningioma) or detect no tumor
+                Upload a brain MRI scan to analyze for tumors (Pituitary,
+                Glioma, Meningioma) or detect no tumor
               </CardDescription>
             </div>
           </div>
@@ -317,8 +367,8 @@ const TumorModel = () => {
             <div
               {...getRootProps()}
               className={`border-3 border-dashed rounded-xl p-10 text-center cursor-pointer transition-all duration-300 ${
-                isDragActive 
-                  ? "border-blue-500 bg-blue-50 shadow-inner" 
+                isDragActive
+                  ? "border-blue-500 bg-blue-50 shadow-inner"
                   : "border-blue-300 hover:border-blue-500 hover:bg-blue-50"
               }`}
             >
@@ -344,12 +394,19 @@ const TumorModel = () => {
                     <Brain className="h-10 w-10 text-blue-600 animate-pulse" />
                   </div>
                   <div>
-                    <p className="font-medium text-lg text-gray-900 mb-2">Analyzing MRI image...</p>
+                    <p className="font-medium text-lg text-gray-900 mb-2">
+                      Analyzing MRI image...
+                    </p>
                     <p className="text-sm text-gray-600 mb-4">
                       Classifying tumor type using AI model (94% accuracy)
                     </p>
-                    <Progress value={progress} className="w-full max-w-md mx-auto h-2" />
-                    <p className="text-xs text-gray-500 mt-2">{progress}% complete</p>
+                    <Progress
+                      value={progress}
+                      className="w-full max-w-md mx-auto h-2"
+                    />
+                    <p className="text-xs text-gray-500 mt-2">
+                      {progress}% complete
+                    </p>
                   </div>
                 </div>
               ) : results ? (
@@ -359,15 +416,18 @@ const TumorModel = () => {
                     <div className="flex items-center space-x-4">
                       {getStatusIcon()}
                       <div>
-                        <span className={`px-4 py-2 rounded-full text-sm font-medium ${getStatusColor()} border`}>
+                        <span
+                          className={`px-4 py-2 rounded-full text-sm font-medium ${getStatusColor()} border`}
+                        >
                           {results.tumorType.toUpperCase()}
                         </span>
                         <p className="text-sm text-gray-600 mt-1">
-                          Analysis completed • {new Date(results.analysisDate).toLocaleDateString()}
+                          Analysis completed •{" "}
+                          {new Date(results.analysisDate).toLocaleDateString()}
                         </p>
                       </div>
                     </div>
-                    <Button 
+                    <Button
                       onClick={downloadPDF}
                       className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
                     >
@@ -380,8 +440,12 @@ const TumorModel = () => {
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <h3 className="font-medium text-gray-900">Original MRI Scan</h3>
-                        <Badge variant="outline" className="text-xs">Uploaded</Badge>
+                        <h3 className="font-medium text-gray-900">
+                          Original MRI Scan
+                        </h3>
+                        <Badge variant="outline" className="text-xs">
+                          Uploaded
+                        </Badge>
                       </div>
                       <div className="border-2 border-gray-200 rounded-xl overflow-hidden bg-gray-50 p-4">
                         <img
@@ -393,8 +457,12 @@ const TumorModel = () => {
                     </div>
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <h3 className="font-medium text-gray-900">Processed Image</h3>
-                        <Badge variant="outline" className="text-xs">AI Analyzed</Badge>
+                        <h3 className="font-medium text-gray-900">
+                          Processed Image
+                        </h3>
+                        <Badge variant="outline" className="text-xs">
+                          AI Analyzed
+                        </Badge>
                       </div>
                       <div className="border-2 border-blue-200 rounded-xl overflow-hidden bg-gradient-to-br from-blue-50 to-white p-4">
                         <img
@@ -408,14 +476,20 @@ const TumorModel = () => {
 
                   {/* Analysis Results */}
                   <div className="space-y-6">
-                    <h3 className="text-xl font-bold text-gray-900 border-b pb-2">Analysis Results</h3>
-                    
+                    <h3 className="text-xl font-bold text-gray-900 border-b pb-2">
+                      Analysis Results
+                    </h3>
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                       {/* Confidence Level */}
                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
-                          <p className="text-sm font-medium text-gray-900">Confidence Level</p>
-                          <span className="text-sm font-bold text-blue-600">{results.confidencePercentage}</span>
+                          <p className="text-sm font-medium text-gray-900">
+                            Confidence Level
+                          </p>
+                          <span className="text-sm font-bold text-blue-600">
+                            {results.confidencePercentage}
+                          </span>
                         </div>
                         <Progress
                           value={results.confidence * 100}
@@ -429,23 +503,65 @@ const TumorModel = () => {
 
                       {/* Tumor Probability Distribution */}
                       <div className="space-y-4">
-                        <p className="text-sm font-medium text-gray-900">Tumor Probability Distribution</p>
+                        <p className="text-sm font-medium text-gray-900">
+                          Tumor Probability Distribution
+                        </p>
                         <div className="grid grid-cols-2 gap-3">
-                          <div className={`p-3 rounded-lg border ${getTumorColor("Pituitary Tumor")}`}>
-                            <p className="text-xs font-medium mb-1">Pituitary</p>
-                            <p className="text-lg font-bold">{Math.round((results.probabilities?.pituitary || 0) * 100)}%</p>
+                          <div
+                            className={`p-3 rounded-lg border ${getTumorColor(
+                              "Pituitary Tumor"
+                            )}`}
+                          >
+                            <p className="text-xs font-medium mb-1">
+                              Pituitary
+                            </p>
+                            <p className="text-lg font-bold">
+                              {Math.round(
+                                (results.probabilities?.pituitary || 0) * 100
+                              )}
+                              %
+                            </p>
                           </div>
-                          <div className={`p-3 rounded-lg border ${getTumorColor("Glioma Tumor")}`}>
+                          <div
+                            className={`p-3 rounded-lg border ${getTumorColor(
+                              "Glioma Tumor"
+                            )}`}
+                          >
                             <p className="text-xs font-medium mb-1">Glioma</p>
-                            <p className="text-lg font-bold">{Math.round((results.probabilities?.glioma || 0) * 100)}%</p>
+                            <p className="text-lg font-bold">
+                              {Math.round(
+                                (results.probabilities?.glioma || 0) * 100
+                              )}
+                              %
+                            </p>
                           </div>
-                          <div className={`p-3 rounded-lg border ${getTumorColor("Meningioma Tumor")}`}>
-                            <p className="text-xs font-medium mb-1">Meningioma</p>
-                            <p className="text-lg font-bold">{Math.round((results.probabilities?.meningioma || 0) * 100)}%</p>
+                          <div
+                            className={`p-3 rounded-lg border ${getTumorColor(
+                              "Meningioma Tumor"
+                            )}`}
+                          >
+                            <p className="text-xs font-medium mb-1">
+                              Meningioma
+                            </p>
+                            <p className="text-lg font-bold">
+                              {Math.round(
+                                (results.probabilities?.meningioma || 0) * 100
+                              )}
+                              %
+                            </p>
                           </div>
-                          <div className={`p-3 rounded-lg border ${getTumorColor("No Tumor")}`}>
+                          <div
+                            className={`p-3 rounded-lg border ${getTumorColor(
+                              "No Tumor"
+                            )}`}
+                          >
                             <p className="text-xs font-medium mb-1">No Tumor</p>
-                            <p className="text-lg font-bold">{Math.round((results.probabilities?.notumor || 0) * 100)}%</p>
+                            <p className="text-lg font-bold">
+                              {Math.round(
+                                (results.probabilities?.notumor || 0) * 100
+                              )}
+                              %
+                            </p>
                           </div>
                         </div>
                       </div>
@@ -453,30 +569,53 @@ const TumorModel = () => {
 
                     {/* Analysis Details */}
                     <div className="bg-gradient-to-r from-gray-50 to-blue-50 p-6 rounded-xl border">
-                      <h4 className="font-medium text-gray-900 mb-4">Analysis Details</h4>
+                      <h4 className="font-medium text-gray-900 mb-4">
+                        Analysis Details
+                      </h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-3">
                           <div>
                             <p className="text-sm text-gray-600">Diagnosis</p>
-                            <p className={`font-semibold ${results.hasTumor ? 'text-red-600' : 'text-green-600'}`}>
+                            <p
+                              className={`font-semibold ${
+                                results.hasTumor
+                                  ? "text-red-600"
+                                  : "text-green-600"
+                              }`}
+                            >
                               {results.tumorType}
                             </p>
                           </div>
                           <div>
-                            <p className="text-sm text-gray-600">Analysis Date</p>
-                            <p className="font-medium">{new Date(results.analysisDate).toLocaleDateString()}</p>
+                            <p className="text-sm text-gray-600">
+                              Analysis Date
+                            </p>
+                            <p className="font-medium">
+                              {new Date(
+                                results.analysisDate
+                              ).toLocaleDateString()}
+                            </p>
                           </div>
                         </div>
                         <div className="space-y-3">
                           <div>
                             <p className="text-sm text-gray-600">Status</p>
-                            <Badge variant={results.hasTumor ? "destructive" : "default"} className="mt-1">
-                              {results.hasTumor ? "Tumor Detected" : "No Tumor Detected"}
+                            <Badge
+                              variant={
+                                results.hasTumor ? "destructive" : "default"
+                              }
+                              className="mt-1"
+                            >
+                              {results.hasTumor
+                                ? "Tumor Detected"
+                                : "No Tumor Detected"}
                             </Badge>
                           </div>
                           <div>
                             <p className="text-sm text-gray-600">Report ID</p>
-                            <p className="font-mono text-xs text-gray-700">{results._id}</p>
+                            <p className="font-mono text-xs text-gray-700">
+                              {results._id}
+                            </p>
                           </div>
                         </div>
                       </div>
@@ -494,7 +633,7 @@ const TumorModel = () => {
                     </Button>
                     <Button
                       variant="secondary"
-                      onClick={() => window.location.href = '/dashboard'}
+                      onClick={() => (window.location.href = "/dashboard")}
                       className="flex-1"
                     >
                       View Scan History
@@ -506,7 +645,9 @@ const TumorModel = () => {
                   {/* Image Preview */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <h3 className="font-medium text-gray-900">MRI Scan Preview</h3>
+                      <h3 className="font-medium text-gray-900">
+                        MRI Scan Preview
+                      </h3>
                       <Badge variant="outline" className="text-xs">
                         Ready for Analysis
                       </Badge>
@@ -519,22 +660,23 @@ const TumorModel = () => {
                       />
                     </div>
                     <p className="text-sm text-gray-500 text-center">
-                      File: {file.name} • Size: {(file.size / (1024 * 1024)).toFixed(2)} MB
+                      File: {file.name} • Size:{" "}
+                      {(file.size / (1024 * 1024)).toFixed(2)} MB
                     </p>
                   </div>
 
                   {/* Action Buttons */}
                   <div className="flex flex-col sm:flex-row gap-4">
-                    <Button 
-                      onClick={analyzeImage} 
+                    <Button
+                      onClick={analyzeImage}
                       className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 h-12"
                       size="lg"
                     >
                       <FileText className="h-5 w-5 mr-2" />
                       Analyze MRI Image
                     </Button>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       onClick={resetAnalysis}
                       className="h-12"
                       size="lg"
@@ -542,10 +684,11 @@ const TumorModel = () => {
                       Cancel
                     </Button>
                   </div>
-                  
+
                   <div className="text-center">
                     <p className="text-sm text-gray-500">
-                      By analyzing, you agree that this is for educational purposes only.
+                      By analyzing, you agree that this is for educational
+                      purposes only.
                     </p>
                   </div>
                 </div>
@@ -566,9 +709,14 @@ const TumorModel = () => {
                     className="mt-2 text-red-600 hover:text-red-700 hover:bg-red-50"
                     onClick={() => {
                       // Check Flask server status
-                      axios.get("http://127.0.0.1:5000/api/health")
-                        .then(res => console.log("Flask server status:", res.data))
-                        .catch(err => console.error("Flask server check failed:", err));
+                      axios
+                        .get("http://127.0.0.1:5000/api/health")
+                        .then((res) =>
+                          console.log("Flask server status:", res.data)
+                        )
+                        .catch((err) =>
+                          console.error("Flask server check failed:", err)
+                        );
                     }}
                   >
                     Check Server Status

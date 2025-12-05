@@ -1,4 +1,5 @@
 import Result from "../models/Result.js";
+import User from "../models/User.js";
 
 const getAllResults = async (req, res) => {
   try {
@@ -108,9 +109,73 @@ const deleteResult = async (req, res) => {
   }
 };
 
+const saveFlaskResult = async (req, res) => {
+  try {
+    const {
+      tumor_type,
+      confidence,
+      image_url,
+      diagnosis,
+      probabilities,
+      has_tumor,
+      timestamp
+    } = req.body;
+    
+    const userId = req.user._id;
+
+    // Validate tumor case
+    const validCases = ['pituitary', 'glioma', 'meningioma', 'notumor'];
+    if (!validCases.includes(tumor_type)) {
+      return res.status(400).json({ error: 'Invalid tumor case type' });
+    }
+
+    // Check if user has free scans available
+    const user = await User.findById(userId);
+    if (!user.freeScansAvailable && !user.isPremium) {
+      return res.status(402).json({ 
+        error: 'No scans available. Please upgrade your plan.',
+        requiresUpgrade: true 
+      });
+    }
+
+    // Create new result
+    const result = new Result({
+      userId,
+      case: tumor_type,
+      confidence,
+      date: new Date(timestamp * 1000),
+      imageUrl: image_url,
+      tumorType: diagnosis,
+      probabilities,
+      hasTumor: has_tumor
+    });
+
+    await result.save();
+
+    // Update user's scan count
+    if (!user.isPremium) {
+      user.freeScansAvailable = Math.max(0, user.freeScansAvailable - 1);
+    }
+    user.totalScans += 1;
+    await user.save();
+
+    res.status(201).json({
+      message: 'Result saved successfully',
+      result,
+      scansRemaining: user.freeScansAvailable,
+      isPremium: user.isPremium
+    });
+  } catch (error) {
+    console.error("Error in saveFlaskResult:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
 export {
   getAllResults,
   createResult,
   getResultById,
-  deleteResult
+  deleteResult,
+  saveFlaskResult
 };

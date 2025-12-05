@@ -12,8 +12,10 @@ ENV/
 env/
 
 #model 
-
 model.h5
+
+#uploads
+uploads/
 
 # IDE / Editor
 .vscode/
