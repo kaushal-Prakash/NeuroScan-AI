@@ -22,7 +22,7 @@ app.use("/auth",authRoutes);
 app.use("/otp", (await import("./routes/otpRoutes.js")).default);
 app.use("/ai", aiRoutes);
 app.use("/results", resultRoutes);
-app.use("/api/subscriptions", subscriptionRoutes);
+app.use("/subscriptions", subscriptionRoutes);
 
 //connect to MongoDB
 connectDB();

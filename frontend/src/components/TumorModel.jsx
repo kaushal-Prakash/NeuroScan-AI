@@ -22,6 +22,7 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import axios from "axios";
+import UpgradeModal from "./UpgradeModal";
 
 const TumorModel = () => {
   const [file, setFile] = useState(null);
@@ -31,6 +32,7 @@ const TumorModel = () => {
   const [error, setError] = useState("");
   const [progress, setProgress] = useState(0);
   const [processedImage, setProcessedImage] = useState("");
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const onDrop = (acceptedFiles) => {
     setError("");
@@ -59,6 +61,12 @@ const TumorModel = () => {
     maxFiles: 1,
   });
 
+  const handleUpgradeSuccess = (upgradeData) => {
+    console.log("Upgrade successful:", upgradeData);
+    // You can refresh the page or show a success message
+    window.location.reload(); // Simple refresh
+  };
+
   const analyzeImage = async () => {
     if (!file) return;
 
@@ -69,7 +77,34 @@ const TumorModel = () => {
 
     const formData = new FormData();
     formData.append("file", file);
+    let subscriptionStatus = null;
+    try {
+      // Fetch existing subscriptions to refresh session
+      const subscriptionResponse = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_URL}/subscriptions/status`,
+        { withCredentials: true }
+      );
 
+      if (subscriptionResponse.data.success) {
+        subscriptionStatus = subscriptionResponse.data.subscription;
+        console.log("Subscription status:", subscriptionStatus);
+
+        // Check if user is eligible
+        if (!subscriptionStatus.eligible) {
+          setProgress(0);
+          setIsLoading(false);
+          setError(subscriptionStatus.message);
+
+          // Show upgrade modal if required
+          if (subscriptionStatus.requiresUpgrade) {
+            setShowUpgradeModal(true);
+          }
+          return;
+        }
+      }
+    } catch (error) {
+      console.error("Error geting subscriptions :", error);
+    }
     try {
       console.log("Sending MRI image for analysis...");
 
@@ -727,6 +762,11 @@ const TumorModel = () => {
           )}
         </CardContent>
       </Card>
+      <UpgradeModal
+        open={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        onUpgrade={handleUpgradeSuccess}
+      />
     </div>
   );
 };
