@@ -10,8 +10,8 @@ const paymentSchema = new mongoose.Schema(
     },
     subscriptionType: { 
       type: String,
-      enum: ["single", "weekly", "monthly", "yearly", "enterprise"],
-      required: true 
+    //   enum: ["single", "weekly", "monthly", "yearly", "enterprise"],
+    //   required: true 
     },
     amount: { type: Number, required: true },
     currency: { type: String, default: "USD" },

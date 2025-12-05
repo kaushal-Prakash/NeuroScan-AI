@@ -537,8 +537,16 @@ const resetFreeWeeklyScans = async (req, res) => {
 
 const processPayment = async (req, res) => {
   try {
-    const { amount, currency = "USD", paymentMethod = "demo", description, metadata } = req.body;
+    const { amount, currency, paymentMethod, description, metadata } = req.body;
     const userId = req.user._id;
+    const user = await User.findById(userId);
+    
+    if (!user) {
+      return res.status(404).json({ success: false, error: "User not found" });
+    }
+
+    user.isPremium = true;
+    await user.save();
     
     // Demo payment processing
     const transactionId = `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -547,6 +555,8 @@ const processPayment = async (req, res) => {
       userId,
       amount,
       currency,
+      subscriptionType: user.subscriptionType,
+      planName: user.subscriptionPlanId ? user.subscriptionPlanId.name : "N/A",
       description: description || "Payment",
       status: "completed",
       paymentMethod,

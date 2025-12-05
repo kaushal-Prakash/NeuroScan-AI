@@ -20,6 +20,7 @@ const userSchema = new mongoose.Schema(
     subscriptionStartDate: { type: Date },
     subscriptionEndDate: { type: Date },
     isActive: { type: Boolean, default: true },
+    isPremium: { type: Boolean, default: false },
     
     // Scan tracking with weekly reset
     totalScans: { type: Number, default: 0 },

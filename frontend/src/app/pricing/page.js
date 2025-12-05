@@ -63,6 +63,8 @@ import {
 } from "react-icons/fa";
 import { IoMdCheckmarkCircleOutline } from "react-icons/io";
 import { BsShieldCheck, BsLightningCharge } from "react-icons/bs";
+import axios from "axios";
+import { toast } from "sonner";
 
 // Animation variants
 const containerVariants = {
@@ -95,8 +97,9 @@ const cardHoverVariants = {
 
 const glowEffect = {
   rest: { boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.05)" },
-  hover: { 
-    boxShadow: "0px 8px 30px rgba(59, 130, 246, 0.15), 0px 0px 0px 1px rgba(59, 130, 246, 0.3)" 
+  hover: {
+    boxShadow:
+      "0px 8px 30px rgba(59, 130, 246, 0.15), 0px 0px 0px 1px rgba(59, 130, 246, 0.3)",
   },
 };
 
@@ -142,22 +145,46 @@ const EnhancedUPIPayment = ({ plan, isOpen, onClose, onSuccess }) => {
           {/* Steps indicator */}
           <div className="flex items-center justify-center py-4 bg-gray-50">
             <div className="flex items-center space-x-2">
-              <div className={`flex items-center ${step === "qr" ? "text-blue-600" : "text-gray-400"}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step === "qr" ? "bg-blue-100" : "bg-gray-100"}`}>
+              <div
+                className={`flex items-center ${
+                  step === "qr" ? "text-blue-600" : "text-gray-400"
+                }`}
+              >
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                    step === "qr" ? "bg-blue-100" : "bg-gray-100"
+                  }`}
+                >
                   <FaQrcode className="w-4 h-4" />
                 </div>
                 <span className="ml-2 text-sm font-medium">Scan QR</span>
               </div>
               <div className="w-8 h-0.5 bg-gray-200" />
-              <div className={`flex items-center ${step === "upload" ? "text-blue-600" : "text-gray-400"}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step === "upload" ? "bg-blue-100" : "bg-gray-100"}`}>
+              <div
+                className={`flex items-center ${
+                  step === "upload" ? "text-blue-600" : "text-gray-400"
+                }`}
+              >
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                    step === "upload" ? "bg-blue-100" : "bg-gray-100"
+                  }`}
+                >
                   <FaUpload className="w-4 h-4" />
                 </div>
                 <span className="ml-2 text-sm font-medium">Upload</span>
               </div>
               <div className="w-8 h-0.5 bg-gray-200" />
-              <div className={`flex items-center ${step === "success" ? "text-blue-600" : "text-gray-400"}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step === "success" ? "bg-blue-100" : "bg-gray-100"}`}>
+              <div
+                className={`flex items-center ${
+                  step === "success" ? "text-blue-600" : "text-gray-400"
+                }`}
+              >
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                    step === "success" ? "bg-blue-100" : "bg-gray-100"
+                  }`}
+                >
                   <IoMdCheckmarkCircleOutline className="w-4 h-4" />
                 </div>
                 <span className="ml-2 text-sm font-medium">Done</span>
@@ -185,7 +212,9 @@ const EnhancedUPIPayment = ({ plan, isOpen, onClose, onSuccess }) => {
 
                 <div className="bg-white p-6 rounded-xl border-2 border-dashed border-blue-200 flex items-center justify-center">
                   <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(upiLink)}&bgcolor=ffffff&color=3b82f6&margin=10`}
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
+                      upiLink
+                    )}&bgcolor=ffffff&color=3b82f6&margin=10`}
                     alt="UPI QR Code"
                     className="w-48 h-48 rounded-lg"
                   />
@@ -238,12 +267,16 @@ const EnhancedUPIPayment = ({ plan, isOpen, onClose, onSuccess }) => {
                   </p>
                 </div>
 
-                <div 
+                <div
                   className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors"
-                  onClick={() => document.getElementById("screenshot-input").click()}
+                  onClick={() =>
+                    document.getElementById("screenshot-input").click()
+                  }
                 >
                   <FaUpload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-700 mb-2">Click to upload screenshot</p>
+                  <p className="text-gray-700 mb-2">
+                    Click to upload screenshot
+                  </p>
                   <p className="text-gray-500 text-sm">PNG, JPG up to 5MB</p>
                   <input
                     type="file"
@@ -263,7 +296,9 @@ const EnhancedUPIPayment = ({ plan, isOpen, onClose, onSuccess }) => {
                     Back
                   </Button>
                   <Button
-                    onClick={() => document.getElementById("screenshot-input").click()}
+                    onClick={() =>
+                      document.getElementById("screenshot-input").click()
+                    }
                     className="flex-1 bg-gradient-to-r from-amber-500 to-orange-500"
                   >
                     Choose File
@@ -313,9 +348,18 @@ const pricingPlans = [
     period: "one time",
     description: "Get one comprehensive brain MRI analysis report.",
     features: [
-      { text: "One-time MRI analysis", icon: <FaFileMedical className="w-4 h-4" /> },
-      { text: "Detailed tumor classification", icon: <FaBrain className="w-4 h-4" /> },
-      { text: "PDF medical report", icon: <FaFileMedical className="w-4 h-4" /> },
+      {
+        text: "One-time MRI analysis",
+        icon: <FaFileMedical className="w-4 h-4" />,
+      },
+      {
+        text: "Detailed tumor classification",
+        icon: <FaBrain className="w-4 h-4" />,
+      },
+      {
+        text: "PDF medical report",
+        icon: <FaFileMedical className="w-4 h-4" />,
+      },
       { text: "Basic visualization", icon: <FaEye className="w-4 h-4" /> },
       { text: "Email support", icon: <FaHeadset className="w-4 h-4" /> },
     ],
@@ -334,9 +378,18 @@ const pricingPlans = [
     description: "Ideal for patient monitoring and short-term needs.",
     features: [
       { text: "Unlimited MRI analyses", icon: <FaSync className="w-4 h-4" /> },
-      { text: "Advanced tumor detection", icon: <FaRobot className="w-4 h-4" /> },
-      { text: "Comparative reports", icon: <FaChartLine className="w-4 h-4" /> },
-      { text: "Priority processing", icon: <BsLightningCharge className="w-4 h-4" /> },
+      {
+        text: "Advanced tumor detection",
+        icon: <FaRobot className="w-4 h-4" />,
+      },
+      {
+        text: "Comparative reports",
+        icon: <FaChartLine className="w-4 h-4" />,
+      },
+      {
+        text: "Priority processing",
+        icon: <BsLightningCharge className="w-4 h-4" />,
+      },
       { text: "Email & chat support", icon: <FaHeadset className="w-4 h-4" /> },
     ],
     popular: false,
@@ -354,10 +407,22 @@ const pricingPlans = [
     description: "Best value for clinics and regular users.",
     features: [
       { text: "Unlimited scans", icon: <FaGlobe className="w-4 h-4" /> },
-      { text: "Multi-patient management", icon: <FaUsers className="w-4 h-4" /> },
-      { text: "Advanced analytics dashboard", icon: <FaChartLine className="w-4 h-4" /> },
-      { text: "2-hour processing guarantee", icon: <FaClock className="w-4 h-4" /> },
-      { text: "Priority phone support", icon: <FaHeadset className="w-4 h-4" /> },
+      {
+        text: "Multi-patient management",
+        icon: <FaUsers className="w-4 h-4" />,
+      },
+      {
+        text: "Advanced analytics dashboard",
+        icon: <FaChartLine className="w-4 h-4" />,
+      },
+      {
+        text: "2-hour processing guarantee",
+        icon: <FaClock className="w-4 h-4" />,
+      },
+      {
+        text: "Priority phone support",
+        icon: <FaHeadset className="w-4 h-4" />,
+      },
       { text: "HIPAA compliant", icon: <FaLock className="w-4 h-4" /> },
       { text: "Basic API access", icon: <FaCode className="w-4 h-4" /> },
     ],
@@ -376,13 +441,25 @@ const pricingPlans = [
     period: "/ year",
     description: "Full platform access with custom solutions.",
     features: [
-      { text: "All Pro features included", icon: <FaMedal className="w-4 h-4" /> },
-      { text: "Custom AI model training", icon: <FaCogs className="w-4 h-4" /> },
+      {
+        text: "All Pro features included",
+        icon: <FaMedal className="w-4 h-4" />,
+      },
+      {
+        text: "Custom AI model training",
+        icon: <FaCogs className="w-4 h-4" />,
+      },
       { text: "Full API integration", icon: <FaPlug className="w-4 h-4" /> },
       { text: "1-hour processing SLA", icon: <FaClock className="w-4 h-4" /> },
-      { text: "24/7 dedicated support", icon: <FaServer className="w-4 h-4" /> },
+      {
+        text: "24/7 dedicated support",
+        icon: <FaServer className="w-4 h-4" />,
+      },
       { text: "Bulk processing", icon: <FaDatabase className="w-4 h-4" /> },
-      { text: "Research collaboration", icon: <FaMicroscope className="w-4 h-4" /> },
+      {
+        text: "Research collaboration",
+        icon: <FaMicroscope className="w-4 h-4" />,
+      },
       { text: "White-label solution", icon: <FaAward className="w-4 h-4" /> },
     ],
     popular: false,
@@ -405,10 +482,68 @@ const EnhancedPricingPage = () => {
     setShowPayment(true);
   };
 
-  const handlePaymentSuccess = () => {
-    console.log("Payment successful for:", selectedPlan.title);
-    // Redirect to dashboard or show success message
-    window.location.href = "/dashboard";
+  const handlePaymentSuccess = async () => {
+    try {
+      console.log("💳 Processing subscription upgrade for plan:", selectedPlan);
+
+      // Get the amount from the selected plan
+      const amount = parseFloat(
+        selectedPlan.price.replace("₹", "").replace(",", "")
+      );
+      console.log(selectedPlan.id);
+      // Call the upgrade API with all required fields
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/subscriptions/upgrade`,
+        {
+          subscriptionType: selectedPlan.id,
+          amount: amount,
+          paymentMethod: "upi",
+          planName: selectedPlan.title,
+          currency: "INR",
+          description: `Upgrade to ${selectedPlan.title} plan`,
+          metadata: {
+            planId: selectedPlan.id,
+            billingCycle: billingCycle,
+          },
+        },
+        { withCredentials: true }
+      );
+
+      if (response.data.success) {
+        console.log("✅ Subscription upgraded successfully:", response.data);
+        toast .success(`Successfully upgraded to ${selectedPlan.title}!`);
+
+        // Wait a moment then redirect to dashboard
+        setTimeout(() => {
+          window.location.href = "/dashboard";
+        }, 1500);
+      } else {
+        toast.error(response.data.error || "Upgrade failed");
+      }
+    } catch (error) {
+      console.error("❌ Error upgrading subscription:", error);
+
+      // More detailed error logging
+      if (error.response) {
+        console.error("Response data:", error.response.data);
+        console.error("Response status:", error.response.status);
+        console.error("Response headers:", error.response.headers);
+
+        if (error.response.data.error) {
+          toast.error(`Payment failed: ${error.response.data.error}`);
+        } else if (error.response.data.message) {
+          toast.error(`Payment failed: ${error.response.data.message}`);
+        } else {
+          toast.error("Payment failed. Please contact support.");
+        }
+      } else if (error.request) {
+        console.error("No response received:", error.request);
+        toast.error("No response from server. Please check your connection.");
+      } else {
+        console.error("Error setting up request:", error.message);
+        toast.error("Failed to process payment. Please try again.");
+      }
+    }
   };
 
   return (
@@ -421,7 +556,7 @@ const EnhancedPricingPage = () => {
       >
         {/* Background Pattern */}
         <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))]" />
-        
+
         <div className="relative container mx-auto px-4 pt-20 pb-16 text-center">
           <motion.div
             initial={{ scale: 0.5 }}
@@ -431,8 +566,8 @@ const EnhancedPricingPage = () => {
             <FaStar className="w-4 h-4" />
             Trusted by medical professionals worldwide
           </motion.div>
-          
-          <motion.h1 
+
+          <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="text-5xl md:text-6xl font-bold text-gray-900 mb-6"
@@ -442,19 +577,19 @@ const EnhancedPricingPage = () => {
               Pricing
             </span>
           </motion.h1>
-          
-          <motion.p 
+
+          <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
             className="text-xl text-gray-600 max-w-3xl mx-auto mb-10"
           >
-            Choose the perfect plan for your needs. All plans include our 
+            Choose the perfect plan for your needs. All plans include our
             industry-leading AI with 94% accuracy. No hidden fees, no surprises.
           </motion.p>
 
           {/* Billing Toggle */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
@@ -509,11 +644,13 @@ const EnhancedPricingPage = () => {
                 className="h-full"
                 style={glowEffect}
               >
-                <Card className={`h-full flex flex-col border-2 relative overflow-hidden ${
-                  plan.highlight 
-                    ? "border-blue-300 shadow-xl" 
-                    : "border-gray-200 hover:border-gray-300"
-                } transition-all duration-300`}>
+                <Card
+                  className={`h-full flex flex-col border-2 relative overflow-hidden ${
+                    plan.highlight
+                      ? "border-blue-300 shadow-xl"
+                      : "border-gray-200 hover:border-gray-300"
+                  } transition-all duration-300`}
+                >
                   {plan.highlight && (
                     <div className="absolute top-0 right-0">
                       <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-1 text-sm font-medium rounded-bl-lg">
@@ -521,7 +658,7 @@ const EnhancedPricingPage = () => {
                       </div>
                     </div>
                   )}
-                  
+
                   {plan.badge && (
                     <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                       <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-1.5 shadow-lg">
@@ -530,22 +667,31 @@ const EnhancedPricingPage = () => {
                     </div>
                   )}
 
-                  <CardHeader className={`pb-4 ${
-                    plan.highlight 
-                      ? "bg-gradient-to-br from-blue-50 to-indigo-50/50" 
-                      : ""
-                  }`}>
+                  <CardHeader
+                    className={`pb-4 ${
+                      plan.highlight
+                        ? "bg-gradient-to-br from-blue-50 to-indigo-50/50"
+                        : ""
+                    }`}
+                  >
                     <div className="flex items-start gap-4">
-                      <div className={`p-3 rounded-xl ${
-                        plan.color === "blue" ? "bg-blue-100 text-blue-600" :
-                        plan.color === "purple" ? "bg-purple-100 text-purple-600" :
-                        plan.color === "indigo" ? "bg-indigo-100 text-indigo-600" :
-                        "bg-amber-100 text-amber-600"
-                      }`}>
+                      <div
+                        className={`p-3 rounded-xl ${
+                          plan.color === "blue"
+                            ? "bg-blue-100 text-blue-600"
+                            : plan.color === "purple"
+                            ? "bg-purple-100 text-purple-600"
+                            : plan.color === "indigo"
+                            ? "bg-indigo-100 text-indigo-600"
+                            : "bg-amber-100 text-amber-600"
+                        }`}
+                      >
                         {plan.icon}
                       </div>
                       <div className="flex-1">
-                        <CardTitle className="text-xl mb-1">{plan.title}</CardTitle>
+                        <CardTitle className="text-xl mb-1">
+                          {plan.title}
+                        </CardTitle>
                         <CardDescription className="text-gray-600">
                           {plan.subtitle}
                         </CardDescription>
@@ -561,12 +707,14 @@ const EnhancedPricingPage = () => {
                           {plan.period}
                         </span>
                       </div>
-                      <p className="text-gray-600 text-sm">{plan.description}</p>
+                      <p className="text-gray-600 text-sm">
+                        {plan.description}
+                      </p>
                     </div>
 
                     <ul className="space-y-3">
                       {plan.features.map((feature, i) => (
-                        <motion.li 
+                        <motion.li
                           key={i}
                           initial={{ opacity: 0, x: -10 }}
                           animate={{ opacity: 1, x: 0 }}
@@ -620,7 +768,7 @@ const EnhancedPricingPage = () => {
               See how our plans stack up against each other
             </p>
           </div>
-          
+
           <div className="bg-white rounded-2xl border shadow-lg overflow-hidden">
             <table className="w-full">
               <thead>
@@ -630,8 +778,13 @@ const EnhancedPricingPage = () => {
                   </th>
                   {pricingPlans.map((plan) => (
                     <th key={plan.id} className="p-6 text-center">
-                      <div className="font-semibold text-gray-900">{plan.title}</div>
-                      <div className="text-sm text-gray-600 mt-1">{plan.price}{plan.period}</div>
+                      <div className="font-semibold text-gray-900">
+                        {plan.title}
+                      </div>
+                      <div className="text-sm text-gray-600 mt-1">
+                        {plan.price}
+                        {plan.period}
+                      </div>
                     </th>
                   ))}
                 </tr>
@@ -688,11 +841,15 @@ const EnhancedPricingPage = () => {
                 <p className="text-gray-600">AI Accuracy Rate</p>
               </div>
               <div>
-                <div className="text-3xl font-bold text-gray-900 mb-2">10,000+</div>
+                <div className="text-3xl font-bold text-gray-900 mb-2">
+                  10,000+
+                </div>
                 <p className="text-gray-600">Scans Processed</p>
               </div>
               <div>
-                <div className="text-3xl font-bold text-gray-900 mb-2">24/7</div>
+                <div className="text-3xl font-bold text-gray-900 mb-2">
+                  24/7
+                </div>
                 <p className="text-gray-600">Support Available</p>
               </div>
             </div>
@@ -716,24 +873,24 @@ const EnhancedPricingPage = () => {
               Get answers to common questions about our pricing and plans
             </p>
           </div>
-          
+
           <div className="space-y-6">
             {[
               {
                 q: "How does the free trial work?",
-                a: "You get 3 free MRI scans per week with our free plan. No credit card required to start."
+                a: "You get 3 free MRI scans per week with our free plan. No credit card required to start.",
               },
               {
                 q: "Can I upgrade or downgrade my plan?",
-                a: "Yes, you can change your plan at any time. The change will take effect immediately."
+                a: "Yes, you can change your plan at any time. The change will take effect immediately.",
               },
               {
                 q: "What payment methods do you accept?",
-                a: "We accept all major credit cards, PayPal, and UPI payments in India."
+                a: "We accept all major credit cards, PayPal, and UPI payments in India.",
               },
               {
                 q: "Is my medical data secure?",
-                a: "Yes, all data is encrypted, HIPAA compliant, and never shared with third parties."
+                a: "Yes, all data is encrypted, HIPAA compliant, and never shared with third parties.",
               },
             ].map((faq, idx) => (
               <motion.div
@@ -764,13 +921,14 @@ const EnhancedPricingPage = () => {
             Ready to transform your medical imaging?
           </h2>
           <p className="text-blue-100 mb-8 max-w-2xl mx-auto">
-            Join thousands of medical professionals who trust our AI-powered MRI analysis.
+            Join thousands of medical professionals who trust our AI-powered MRI
+            analysis.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button
               size="lg"
               className="bg-white text-blue-600 hover:bg-gray-100 px-8"
-              onClick={() => window.location.href = "/signup"}
+              onClick={() => (window.location.href = "/signup")}
             >
               Start Free Trial
             </Button>
