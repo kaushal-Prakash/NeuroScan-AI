@@ -9,11 +9,15 @@ const resultSchema = new mongoose.Schema(
     },
     case: {
       type: String,
-      enum: ["covid", "normal", "viral"],
+      enum: ["pituitary", "glioma", "meningioma", "notumor"],
       required: true,
     },
-    date: { type: Date },
+    date: { type: Date, default: Date.now },
     confidence: { type: Number, required: true },
+    imageUrl: { type: String }, // URL to the uploaded MRI image
+    reportUrl: { type: String }, // URL to generated PDF report
+    tumorType: { type: String }, // Human-readable tumor type
+    notes: { type: String }, // Additional notes from doctor/user
   },
   { timestamps: true }
 );
