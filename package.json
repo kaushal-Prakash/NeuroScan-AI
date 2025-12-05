@@ -1,0 +1,12 @@
+{
+  "name": "neuroscan-ai",
+  "scripts": {
+    "dev": "concurrently \"npm run ai\" \"npm run backend\" \"npm run frontend\"",
+    "ai": "cd ai && python app.py",
+    "backend": "cd backend && npm run dev",
+    "frontend": "cd frontend && npm start"
+  },
+  "devDependencies": {
+    "concurrently": "^8.0.1"
+  }
+}
