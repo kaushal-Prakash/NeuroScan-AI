@@ -56,7 +56,7 @@ export default function Home() {
   const pricingPlans = [
     {
       title: "Single Scan",
-      price: "$4.99",
+      price: "₹49.99",
       description: "Get one comprehensive brain MRI analysis report.",
       features: [
         "One-time MRI analysis",
@@ -71,7 +71,7 @@ export default function Home() {
     },
     {
       title: "Weekly Access",
-      price: "$14.99",
+      price: "₹149.99",
       period: "/ week",
       description: "Unlimited scans for 7 days. Ideal for patient monitoring.",
       features: [
@@ -87,7 +87,7 @@ export default function Home() {
     },
     {
       title: "Monthly Pro",
-      price: "$39.99",
+      price: "₹399.99",
       period: "/ month",
       description: "For medical professionals & small clinics. Best value.",
       features: [
@@ -104,7 +104,7 @@ export default function Home() {
     },
     {
       title: "Enterprise",
-      price: "$299.99",
+      price: "₹2999.99",
       period: "/ year",
       description: "For hospitals & research institutions. Full platform access.",
       features: [
@@ -644,7 +644,7 @@ export default function Home() {
                   <CardFooter>
                     <Button 
                       className={`w-full gap-2 ${plan.popular ? "bg-blue-600 hover:bg-blue-700" : plan.value ? "bg-amber-600 hover:bg-amber-700" : ""}`}
-                      onClick={() => router.push("/signup")}
+                      onClick={() => router.push("/pricing")}
                     >
                       Get Started <FaArrowRight className="h-4 w-4" />
                     </Button>

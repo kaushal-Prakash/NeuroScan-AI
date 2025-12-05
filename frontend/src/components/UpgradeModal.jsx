@@ -1,4 +1,3 @@
-// components/UpgradeModal.jsx - Minimal version
 "use client";
 import {
   Dialog,
