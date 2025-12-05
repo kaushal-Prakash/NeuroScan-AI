@@ -26,6 +26,10 @@ import {
   LogOut,
   Settings,
   ScanSearch,
+  Brain,
+  FileText,
+  History,
+  BookOpen,
 } from "lucide-react";
 import axios from "axios";
 
@@ -70,7 +74,7 @@ const Navbar = () => {
 
   const handleLogout = async () => {
     try {
-      await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/auth/signout`,{
+      await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/auth/signout`, {
         withCredentials: true,
       });
       setIsLoggedIn(false);
@@ -81,12 +85,28 @@ const Navbar = () => {
     }
   };
 
-  // Navigation items
+  // Navigation items for NeuroScan AI
   const navItems = [
-    { name: "Home", href: "/home" },
-    { name: "About", href: "/about-us" },
-    { name: "Services", href: "/services" },
-    { name: "Contact", href: "/contact" },
+    {
+      name: "Dashboard",
+      href: "/dashboard",
+      icon: <Brain className="h-4 w-4" />,
+    },
+    {
+      name: "About",
+      href: "/about-us",
+      icon: <BookOpen className="h-4 w-4" />,
+    },
+    {
+      name: "Services",
+      href: "/services",
+      icon: <ScanSearch className="h-4 w-4" />,
+    },
+    {
+      name: "Contact",
+      href: "/contact",
+      icon: <FileText className="h-4 w-4" />,
+    },
   ];
 
   const isActiveLink = (href) => {
@@ -98,7 +118,7 @@ const Navbar = () => {
 
   return (
     <motion.nav
-      className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+      className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 shadow-sm"
       initial={{ y: -100 }}
       animate={{ y: 0 }}
       transition={{ duration: 0.3 }}
@@ -106,10 +126,17 @@ const Navbar = () => {
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         {/* Logo */}
         <Link href="/" className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-primary rounded-md flex items-center justify-center">
-            <ScanSearch className="h-5 w-5 text-primary-foreground" />
+          <div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center shadow-md">
+            <Brain className="h-5 w-5 text-white" />
           </div>
-          <span className="font-bold text-xl">Thorax AI</span>
+          <div className="flex flex-col">
+            <span className="font-bold text-xl bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+              NeuroScan AI
+            </span>
+            <span className="text-xs text-gray-500 -mt-1">
+              Brain Tumor Detection
+            </span>
+          </div>
         </Link>
 
         {/* Desktop Navigation */}
@@ -118,16 +145,23 @@ const Navbar = () => {
             <Link
               key={item.name}
               href={item.href}
-              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors relative ${
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all relative flex items-center gap-2 group ${
                 isActiveLink(item.href)
-                  ? "text-primary"
-                  : "text-foreground/60 hover:text-foreground"
+                  ? "text-blue-600 bg-blue-50"
+                  : "text-gray-700 hover:text-blue-600 hover:bg-gray-50"
               }`}
             >
+              <span
+                className={`transition-transform group-hover:scale-110 ${
+                  isActiveLink(item.href) ? "text-blue-600" : "text-gray-500"
+                }`}
+              >
+                {item.icon}
+              </span>
               {item.name}
               {isActiveLink(item.href) && (
                 <motion.div
-                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"
+                  className="absolute bottom-0 left-3 right-3 h-0.5 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full"
                   layoutId="navbar-indicator"
                 />
               )}
@@ -136,54 +170,78 @@ const Navbar = () => {
         </div>
 
         {/* Desktop Auth Buttons */}
-        <div className="hidden md:flex items-center space-x-2">
+        <div className="hidden md:flex items-center space-x-3">
           {isLoading ? (
-            <div className="h-9 w-20 bg-muted rounded-md animate-pulse"></div>
+            <div className="flex space-x-3">
+              <div className="h-9 w-20 bg-gray-200 rounded-lg animate-pulse"></div>
+              <div className="h-9 w-20 bg-gray-200 rounded-lg animate-pulse"></div>
+            </div>
           ) : isLoggedIn ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="relative h-9 w-9 rounded-full"
-                >
-                  <User className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="end" forceMount>
-                <DropdownMenuLabel className="font-normal">
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">
-                      {userData?.name || "User"}
-                    </p>
-                    <p className="text-xs leading-none text-muted-foreground">
-                      {userData?.email || "user@example.com"}
-                    </p>
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/home" className="cursor-pointer">
-                    <LayoutDashboard className="mr-2 h-4 w-4" />
-                    Dashboard
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={handleLogout}
-                  className="cursor-pointer"
-                >
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Log out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="flex items-center space-x-3">
+              <Button
+                asChild
+                variant="outline"
+                className="border-blue-200 text-blue-600 hover:bg-blue-50 hover:text-blue-700"
+              >
+                <Link href="/services">
+                  <ScanSearch className="h-4 w-4 mr-2" />
+                  New Scan
+                </Link>
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="relative h-10 w-10 rounded-full border border-gray-200 hover:bg-gray-50"
+                  >
+                    <div className="flex items-center justify-center w-6 h-6 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full text-white text-xs font-bold">
+                      {userData?.name?.charAt(0) || "U"}
+                    </div>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none">
+                        {userData?.name || "User"}
+                      </p>
+                      <p className="text-xs leading-none text-gray-500">
+                        {userData?.email || "user@example.com"}
+                      </p>
+                      {userData?.role === "doctor" && (
+                        <Badge variant="secondary" className="mt-1 w-fit">
+                          Medical Professional
+                        </Badge>
+                      )}
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={handleLogout}
+                    className="cursor-pointer text-red-600 focus:text-red-600"
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Log out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           ) : (
             <>
-              <Button asChild variant="ghost" size="sm">
+              <Button
+                asChild
+                variant="ghost"
+                size="sm"
+                className="text-gray-700 hover:text-blue-600"
+              >
                 <Link href="/login">Login</Link>
               </Button>
-              <Button asChild size="sm">
-                <Link href="/signup">Sign Up</Link>
+              <Button
+                asChild
+                size="sm"
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+              >
+                <Link href="/signup">Get Started</Link>
               </Button>
             </>
           )}
@@ -192,7 +250,11 @@ const Navbar = () => {
         {/* Mobile Menu Button */}
         <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
           <SheetTrigger asChild className="md:hidden">
-            <Button variant="ghost" size="icon">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="border border-gray-200"
+            >
               {mobileMenuOpen ? (
                 <X className="h-5 w-5" />
               ) : (
@@ -200,93 +262,136 @@ const Navbar = () => {
               )}
             </Button>
           </SheetTrigger>
-          <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+          <SheetContent
+            side="right"
+            className="w-[300px] sm:w-[400px] p-0 border-l border-gray-200"
+          >
             <div className="flex flex-col h-full">
-              {/* Mobile Navigation */}
-              <div className="flex-1 py-6">
-                <div className="flex items-center px-2 pb-6">
-                  <div className="w-8 h-8 bg-primary rounded-md flex items-center justify-center">
-                    <ScanSearch className="h-5 w-5 text-primary-foreground" />
+              {/* Mobile Header */}
+              <div className="flex items-center justify-between p-6 border-b">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
+                    <Brain className="h-5 w-5 text-white" />
                   </div>
-                  <span className="ml-2 font-bold text-xl">Thorax AI</span>
+                  <div>
+                    <span className="font-bold text-lg">NeuroScan AI</span>
+                    <p className="text-xs text-gray-500">
+                      Brain Tumor Detection
+                    </p>
+                  </div>
                 </div>
+              </div>
 
-                <nav className="grid gap-2">
+              {/* Mobile Navigation */}
+              <div className="flex-1 py-4 px-4">
+                <div className="space-y-1">
                   {navItems.map((item) => (
                     <SheetClose asChild key={item.name}>
                       <Link
                         href={item.href}
-                        className={`flex items-center py-2 px-3 rounded-md text-base font-medium center text-center w-full transition-colors ${
+                        className={`flex items-center py-3 px-4 rounded-lg text-base font-medium transition-all ${
                           isActiveLink(item.href)
-                            ? "bg-primary/10 text-primary"
-                            : "text-foreground/60 hover:text-foreground"
+                            ? "bg-blue-50 text-blue-600 border-l-4 border-blue-600"
+                            : "text-gray-700 hover:bg-gray-50"
                         }`}
                       >
+                        <span
+                          className={`mr-3 ${
+                            isActiveLink(item.href)
+                              ? "text-blue-600"
+                              : "text-gray-500"
+                          }`}
+                        >
+                          {item.icon}
+                        </span>
                         {item.name}
                       </Link>
                     </SheetClose>
                   ))}
-                </nav>
+                </div>
               </div>
 
-              {/* Mobile Auth Buttons */}
-              <div className="border-t pt-4 pb-6">
+              {/* Mobile Auth Section */}
+              <div className="border-t p-6 space-y-4">
                 {isLoading ? (
                   <div className="space-y-3">
-                    <div className="h-10 bg-muted rounded-md animate-pulse"></div>
-                    <div className="h-10 bg-muted rounded-md animate-pulse"></div>
+                    <div className="h-10 bg-gray-200 rounded-lg animate-pulse"></div>
+                    <div className="h-10 bg-gray-200 rounded-lg animate-pulse"></div>
                   </div>
                 ) : isLoggedIn ? (
-                  <div className="space-y-3">
-                    <div className="px-3 py-2">
-                      <p className="text-sm font-medium">
-                        {userData?.name || "User"}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {userData?.email || "user@example.com"}
-                      </p>
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg">
+                      <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full text-white text-sm font-bold">
+                        {userData?.name?.charAt(0) || "U"}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">
+                          {userData?.name || "User"}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {userData?.email || "user@example.com"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1">
+                      <SheetClose asChild>
+                        <Button
+                          asChild
+                          variant="outline"
+                          className="border-blue-200 text-blue-600 hover:bg-blue-50"
+                        >
+                          <Link href="/services">
+                            <ScanSearch className="h-4 w-4 mr-2" />
+                            New Scan
+                          </Link>
+                        </Button>
+                      </SheetClose>
                     </div>
                     <SheetClose asChild>
-                      <Link
-                        href="/dashboard"
-                        className="flex items-center py-2 px-3 rounded-md text-base font-medium text-foreground/60 hover:text-foreground w-full"
+                      <Button
+                        onClick={handleLogout}
+                        variant="outline"
+                        className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
                       >
-                        <LayoutDashboard className="mr-2 h-4 w-4" />
-                        Dashboard
-                      </Link>
+                        <LogOut className="h-4 w-4 mr-2" />
+                        Log out
+                      </Button>
                     </SheetClose>
-                    <SheetClose asChild>
-                      <Link
-                        href="/account"
-                        className="flex items-center py-2 px-3 rounded-md text-base font-medium text-foreground/60 hover:text-foreground w-full"
-                      >
-                        <Settings className="mr-2 h-4 w-4" />
-                        Account
-                      </Link>
-                    </SheetClose>
-                    <Button
-                      onClick={handleLogout}
-                      variant="outline"
-                      className="w-full justify-start"
-                    >
-                      <LogOut className="mr-2 h-4 w-4" />
-                      Log out
-                    </Button>
                   </div>
                 ) : (
                   <div className="space-y-3">
                     <SheetClose asChild>
-                      <Button asChild variant="outline" className="w-full">
+                      <Button
+                        asChild
+                        variant="outline"
+                        className="w-full border-blue-200 text-blue-600 hover:bg-blue-50"
+                      >
                         <Link href="/login">Login</Link>
                       </Button>
                     </SheetClose>
                     <SheetClose asChild>
-                      <Button asChild className="w-full">
-                        <Link href="/signup">Sign Up</Link>
+                      <Button
+                        asChild
+                        className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                      >
+                        <Link href="/signup">Get Started Free</Link>
                       </Button>
                     </SheetClose>
                   </div>
                 )}
+
+                {/* Contact Info */}
+                <div className="pt-4 border-t">
+                  <p className="text-xs text-gray-500 text-center">
+                    Need help?{" "}
+                    <Link
+                      href="/contact"
+                      className="text-blue-600 hover:underline"
+                    >
+                      Contact Support
+                    </Link>
+                  </p>
+                </div>
               </div>
             </div>
           </SheetContent>
