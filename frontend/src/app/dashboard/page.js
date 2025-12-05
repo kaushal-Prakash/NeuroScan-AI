@@ -470,17 +470,6 @@ function Dashboard() {
                           <Badge variant={getCaseBadgeVariant(result.case)} className="text-sm">
                             {Math.round(result.confidence * 100)}% confidence
                           </Badge>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            className="text-blue-600 hover:text-blue-700"
-                            onClick={() => {
-                              // Navigate to detailed report
-                              window.location.href = `/reports/${result._id}`;
-                            }}
-                          >
-                            View Report
-                          </Button>
                         </div>
                       </div>
                     ))}
