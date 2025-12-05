@@ -11,6 +11,10 @@ venv/
 ENV/
 env/
 
+#model 
+
+model.h5
+
 # IDE / Editor
 .vscode/
 .idea/
