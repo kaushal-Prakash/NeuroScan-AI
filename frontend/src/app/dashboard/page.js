@@ -410,12 +410,6 @@ function Dashboard() {
                   <PlusCircle className="h-4 w-4 mr-2" />
                   New MRI Scan
                 </Button>
-                {results.length > 0 && (
-                  <Button variant="outline" size="sm">
-                    <FileText className="h-4 w-4 mr-2" />
-                    Export Reports
-                  </Button>
-                )}
               </div>
             </div>
           </CardHeader>
