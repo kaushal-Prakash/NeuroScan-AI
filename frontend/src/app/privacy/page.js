@@ -31,7 +31,7 @@ const PrivacyPolicy = () => {
         </CardHeader>
         <CardContent className="space-y-6">
           <p>
-            At Thorax AI, we are committed to protecting your privacy and ensuring the security of your personal 
+            At NeuroScan AI, we are committed to protecting your privacy and ensuring the security of your personal 
             and medical information. This Privacy Policy explains how we collect, use, disclose, and safeguard 
             your information when you use our AI-powered chest X-ray analysis service.
           </p>

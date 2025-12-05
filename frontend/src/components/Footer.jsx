@@ -13,9 +13,9 @@ const Footer = () => {
           <div className="flex flex-col md:flex-row justify-between items-center gap-8">
             {/* Branding */}
             <div className="text-center md:text-left">
-              <h2 className="text-2xl font-bold tracking-tight">Thorax AI</h2>
+              <h2 className="text-2xl font-bold tracking-tight">NeuroScan AI</h2>
               <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-md">
-                Breathing Life into Intelligence
+                Brain Tumor Detection and Analysis Powered by AI to Aid Medical Professionals.
               </p>
             </div>
 
@@ -47,7 +47,7 @@ const Footer = () => {
 
           {/* Bottom Section */}
           <div className="flex flex-col md:flex-row justify-between items-center text-sm text-muted-foreground gap-4">
-            <p>© {new Date().getFullYear()} Thorax AI. All rights reserved.</p>
+            <p>© {new Date().getFullYear()} NeuroScan AI. All rights reserved.</p>
 
             {/* Social Icons */}
             <div className="flex gap-3">
@@ -58,7 +58,7 @@ const Footer = () => {
                 className="rounded-full hover:bg-primary hover:text-primary-foreground transition-colors border-border bg-background/50"
               >
                 <a
-                  href="https://github.com/kaushal-Prakash/thorax-ai"
+                  href="https://github.com/kaushal-Prakash/NeuroScan-AI"
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="GitHub"

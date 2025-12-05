@@ -30,14 +30,14 @@ const TermsOfService = () => {
         </CardHeader>
         <CardContent className="space-y-6">
           <p>
-            Welcome to Thorax AI. These Terms of Service govern your use of our AI-powered chest X-ray analysis 
+            Welcome to NeuroScan AI. These Terms of Service govern your use of our AI-powered chest X-ray analysis 
             service. Please read these terms carefully before using our service.
           </p>
 
           <div>
             <h2 className="text-xl font-semibold mb-2">1. Acceptance of Terms</h2>
             <p>
-              By accessing or using Thorax AI&apos;s services, you agree to be bound by these Terms of Service and 
+              By accessing or using NeuroScan AI&apos;s services, you agree to be bound by these Terms of Service and 
               our Privacy Policy. If you do not agree to these terms, you may not use our services.
             </p>
           </div>
@@ -45,7 +45,7 @@ const TermsOfService = () => {
           <div>
             <h2 className="text-xl font-semibold mb-2">2. Service Description</h2>
             <p>
-              Thorax AI provides an AI-based analysis service for chest X-ray images. Our service uses machine 
+              NeuroScan AI provides an AI-based analysis service for chest X-ray images. Our service uses machine 
               learning algorithms to identify potential abnormalities in chest X-rays and generate preliminary 
               reports. This service is intended to assist healthcare professionals and should not be used as 
               a sole means of diagnosis.
@@ -107,7 +107,7 @@ const TermsOfService = () => {
           <div>
             <h2 className="text-xl font-semibold mb-2">5. Medical Disclaimer</h2>
             <p className="bg-destructive/10 p-4 rounded-lg border border-destructive/20">
-              IMPORTANT: Thorax AI&apos;s services are intended to assist healthcare professionals and should 
+              IMPORTANT: NeuroScan AI&apos;s services are intended to assist healthcare professionals and should 
               not be used as a sole means of diagnosis. Our AI-generated reports are preliminary assessments 
               and must be reviewed and verified by a qualified medical professional. We do not provide medical 
               advice, diagnosis, or treatment. Always seek the advice of qualified health providers with 
@@ -118,9 +118,9 @@ const TermsOfService = () => {
           <div>
             <h2 className="text-xl font-semibold mb-2">6. Intellectual Property</h2>
             <p>
-              All content, features, and functionality of Thorax AI&apos;s service, including but not limited to 
+              All content, features, and functionality of NeuroScan AI&apos;s service, including but not limited to 
               our machine learning models, algorithms, software, and documentation, are the exclusive property 
-              of Thorax AI and are protected by international copyright, trademark, and other intellectual 
+              of NeuroScan AI and are protected by international copyright, trademark, and other intellectual 
               property laws.
             </p>
           </div>
@@ -128,7 +128,7 @@ const TermsOfService = () => {
           <div>
             <h2 className="text-xl font-semibold mb-2">7. User Content</h2>
             <p>
-              By uploading X-ray images to our service, you grant Thorax AI a limited license to use, process, 
+              By uploading X-ray images to our service, you grant NeuroScan AI a limited license to use, process, 
               and store these images solely for the purpose of providing our analysis service. We will not use 
               your medical images for any other purpose without your explicit consent.
             </p>
@@ -137,7 +137,7 @@ const TermsOfService = () => {
           <div>
             <h2 className="text-xl font-semibold mb-2">8. Limitation of Liability</h2>
             <p>
-              To the fullest extent permitted by law, Thorax AI shall not be liable for any indirect, incidental, 
+              To the fullest extent permitted by law, NeuroScan AI shall not be liable for any indirect, incidental, 
               special, consequential, or punitive damages, or any loss of profits or revenues, whether incurred 
               directly or indirectly, or any loss of data, use, goodwill, or other intangible losses resulting from:
             </p>
