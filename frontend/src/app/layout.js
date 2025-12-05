@@ -17,9 +17,8 @@ const poppins = Poppins({
 });
 
 export const metadata = {
-  title: "Thorax AI",
-  description: "Thorax AI – Breathing Life into Intelligence",
-  icons: "/icon.png",
+  title: "NeuroScan AI",
+  description: "AI-Powered Brain Tumor Detection and Analysis",
 };
 
 export default function RootLayout({ children }) {
