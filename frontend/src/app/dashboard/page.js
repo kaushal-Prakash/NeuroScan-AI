@@ -8,7 +8,10 @@ import {
   BarChart3, 
   Activity,
   Download,
-  PlusCircle
+  PlusCircle,
+  Brain,
+  FileText,
+  TrendingUp
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,8 +25,9 @@ import {
   Title,
   Tooltip,
   Legend,
+  ArcElement,
 } from 'chart.js';
-import { Bar } from 'react-chartjs-2';
+import { Bar, Doughnut } from 'react-chartjs-2';
 import axios from 'axios';
 
 ChartJS.register(
@@ -32,7 +36,8 @@ ChartJS.register(
   BarElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  ArcElement
 );
 
 function Dashboard() {
@@ -41,10 +46,8 @@ function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate API call to fetch user data
     const fetchUserData = async () => {
       try {
-        // In a real app, you would fetch this from your API
         const userData = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/auth/get-user`, {
           withCredentials: true,
         });
@@ -56,7 +59,7 @@ function Dashboard() {
         setResults(userResults.data);
       } catch (error) {
         console.error("Failed to fetch user data:", error);
-        setResults([]); // Ensure results is always an array
+        setResults([]);
       } finally {
         setIsLoading(false);
       }
@@ -65,7 +68,7 @@ function Dashboard() {
     fetchUserData();
   }, []);
 
-  // Prepare data for the chart - fixed to handle empty results
+  // Prepare data for tumor classification chart
   const chartData = {
     labels: results.length > 0 
       ? results.map(result => 
@@ -74,25 +77,54 @@ function Dashboard() {
       : [],
     datasets: [
       {
-        label: 'COVID-19',
+        label: 'Pituitary Tumor',
         data: results.length > 0 
-          ? results.map(result => result.case === 'covid' ? result.confidence * 100 : 0)
+          ? results.map(result => result.case === 'pituitary' ? result.confidence * 100 : 0)
           : [],
-        backgroundColor: 'rgba(239, 68, 68, 0.8)',
+        backgroundColor: 'rgba(59, 130, 246, 0.8)', // Blue
       },
       {
-        label: 'Viral Pneumonia',
+        label: 'Glioma Tumor',
         data: results.length > 0 
-          ? results.map(result => result.case === 'viral' ? result.confidence * 100 : 0)
+          ? results.map(result => result.case === 'glioma' ? result.confidence * 100 : 0)
           : [],
-        backgroundColor: 'rgba(234, 179, 8, 0.8)',
+        backgroundColor: 'rgba(139, 92, 246, 0.8)', // Purple
       },
       {
-        label: 'Normal',
+        label: 'Meningioma Tumor',
         data: results.length > 0 
-          ? results.map(result => result.case === 'normal' ? result.confidence * 100 : 0)
+          ? results.map(result => result.case === 'meningioma' ? result.confidence * 100 : 0)
           : [],
-        backgroundColor: 'rgba(34, 197, 94, 0.8)',
+        backgroundColor: 'rgba(16, 185, 129, 0.8)', // Green
+      },
+      {
+        label: 'No Tumor',
+        data: results.length > 0 
+          ? results.map(result => result.case === 'notumor' ? result.confidence * 100 : 0)
+          : [],
+        backgroundColor: 'rgba(107, 114, 128, 0.8)', // Gray
+      },
+    ],
+  };
+
+  // Doughnut chart data for tumor distribution
+  const doughnutData = {
+    labels: ['Pituitary', 'Glioma', 'Meningioma', 'No Tumor'],
+    datasets: [
+      {
+        data: [
+          results.filter(r => r.case === 'pituitary').length,
+          results.filter(r => r.case === 'glioma').length,
+          results.filter(r => r.case === 'meningioma').length,
+          results.filter(r => r.case === 'notumor').length
+        ],
+        backgroundColor: [
+          'rgba(59, 130, 246, 0.8)',
+          'rgba(139, 92, 246, 0.8)',
+          'rgba(16, 185, 129, 0.8)',
+          'rgba(107, 114, 128, 0.8)'
+        ],
+        borderWidth: 1,
       },
     ],
   };
@@ -105,7 +137,7 @@ function Dashboard() {
       },
       title: {
         display: true,
-        text: 'Scan Results History',
+        text: 'Brain MRI Scan Results History',
       },
     },
     scales: {
@@ -120,42 +152,98 @@ function Dashboard() {
     },
   };
 
-  // Calculate statistics - these will work with empty array
+  const doughnutOptions = {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: 'right',
+      },
+      title: {
+        display: true,
+        text: 'Tumor Distribution',
+      },
+    },
+  };
+
+  // Calculate statistics
   const totalScans = results.length;
-  const covidScans = results.filter(r => r.case === 'covid').length;
-  const normalScans = results.filter(r => r.case === 'normal').length;
-  const viralScans = results.filter(r => r.case === 'viral').length;
+  const tumorScans = results.filter(r => r.case !== 'notumor').length;
+  const pituitaryScans = results.filter(r => r.case === 'pituitary').length;
+  const gliomaScans = results.filter(r => r.case === 'glioma').length;
+  const meningiomaScans = results.filter(r => r.case === 'meningioma').length;
+  const noTumorScans = results.filter(r => r.case === 'notumor').length;
+  const detectionRate = totalScans > 0 ? Math.round((tumorScans / totalScans) * 100) : 0;
 
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
+  const getCaseDisplayName = (caseType) => {
+    switch(caseType) {
+      case 'pituitary': return 'Pituitary Tumor';
+      case 'glioma': return 'Glioma Tumor';
+      case 'meningioma': return 'Meningioma Tumor';
+      case 'notumor': return 'No Tumor';
+      default: return caseType;
+    }
+  };
+
+  const getCaseColor = (caseType) => {
+    switch(caseType) {
+      case 'pituitary': return 'bg-blue-100 text-blue-800';
+      case 'glioma': return 'bg-purple-100 text-purple-800';
+      case 'meningioma': return 'bg-green-100 text-green-800';
+      case 'notumor': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getCaseBadgeVariant = (caseType) => {
+    switch(caseType) {
+      case 'pituitary': return 'default';
+      case 'glioma': return 'secondary';
+      case 'meningioma': return 'outline';
+      case 'notumor': return 'destructive';
+      default: return 'default';
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white p-6">
+      <div className="max-w-7xl mx-auto">
         <header className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600">Welcome back, {user?.name}</p>
+          <div className="flex items-center gap-3 mb-2">
+            <Brain className="h-8 w-8 text-blue-600" />
+            <h1 className="text-3xl font-bold text-gray-900">NeuroScan Dashboard</h1>
+          </div>
+          <p className="text-gray-600">
+            Welcome back, <span className="font-semibold text-blue-600">{user?.name}</span>
+            {user?.role === 'doctor' && (
+              <Badge className="ml-2 bg-blue-600 hover:bg-blue-700">
+                Medical Professional
+              </Badge>
+            )}
+          </p>
         </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
           {/* User Profile Card */}
-          <Card className="md:col-span-1">
+          <Card className="lg:col-span-1 border-0 shadow-lg">
             <CardHeader className="pb-4">
               <CardTitle className="text-lg flex items-center gap-2">
-                <User className="h-5 w-5" />
+                <User className="h-5 w-5 text-blue-600" />
                 Account Information
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
-                  <div className="bg-primary/10 p-2 rounded-full">
-                    <User className="h-5 w-5 text-primary" />
+                  <div className="bg-blue-100 p-2 rounded-full">
+                    <User className="h-5 w-5 text-blue-600" />
                   </div>
                   <div>
                     <p className="text-sm font-medium">Name</p>
@@ -164,8 +252,8 @@ function Dashboard() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <div className="bg-primary/10 p-2 rounded-full">
-                    <Mail className="h-5 w-5 text-primary" />
+                  <div className="bg-blue-100 p-2 rounded-full">
+                    <Mail className="h-5 w-5 text-blue-600" />
                   </div>
                   <div>
                     <p className="text-sm font-medium">Email</p>
@@ -174,8 +262,8 @@ function Dashboard() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <div className="bg-primary/10 p-2 rounded-full">
-                    <Calendar className="h-5 w-5 text-primary" />
+                  <div className="bg-blue-100 p-2 rounded-full">
+                    <Calendar className="h-5 w-5 text-blue-600" />
                   </div>
                   <div>
                     <p className="text-sm font-medium">Member since</p>
@@ -186,8 +274,8 @@ function Dashboard() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <div className="bg-primary/10 p-2 rounded-full">
-                    <Crown className="h-5 w-5 text-primary" />
+                  <div className="bg-blue-100 p-2 rounded-full">
+                    <Crown className="h-5 w-5 text-blue-600" />
                   </div>
                   <div>
                     <p className="text-sm font-medium">Account Type</p>
@@ -198,7 +286,10 @@ function Dashboard() {
                 </div>
 
                 {!user?.isPremium && (
-                  <Button className="w-full mt-4" onClick={() => window.location.href = '/pricing'}>
+                  <Button 
+                    className="w-full mt-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                    onClick={() => window.location.href = '/pricing'}
+                  >
                     <Crown className="h-4 w-4 mr-2" />
                     Upgrade to Premium
                   </Button>
@@ -208,150 +299,220 @@ function Dashboard() {
           </Card>
 
           {/* Stats Overview */}
-          <Card className="md:col-span-2">
+          <Card className="lg:col-span-3 border-0 shadow-lg">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Activity className="h-5 w-5" />
-                Scan Statistics
+                <Activity className="h-5 w-5 text-blue-600" />
+                MRI Scan Statistics
               </CardTitle>
               <CardDescription>
-                Overview of your COVID-19 detection scans
+                Overview of your brain tumor detection scans
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-3 gap-4 mb-6">
-                <div className="text-center p-4 bg-blue-50 rounded-lg">
-                  <p className="text-2xl font-bold">{totalScans}</p>
-                  <p className="text-sm text-gray-600">Total Scans</p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border border-blue-200">
+                  <p className="text-2xl font-bold text-blue-700">{totalScans}</p>
+                  <p className="text-sm text-blue-600 font-medium">Total Scans</p>
                 </div>
-                <div className="text-center p-4 bg-red-50 rounded-lg">
-                  <p className="text-2xl font-bold">{covidScans}</p>
-                  <p className="text-sm text-gray-600">COVID Detections</p>
+                <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl border border-purple-200">
+                  <p className="text-2xl font-bold text-purple-700">{tumorScans}</p>
+                  <p className="text-sm text-purple-600 font-medium">Tumor Detections</p>
                 </div>
-                <div className="text-center p-4 bg-green-50 rounded-lg">
-                  <p className="text-2xl font-bold">{normalScans}</p>
-                  <p className="text-sm text-gray-600">Normal Results</p>
+                <div className="text-center p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-xl border border-green-200">
+                  <p className="text-2xl font-bold text-green-700">{noTumorScans}</p>
+                  <p className="text-sm text-green-600 font-medium">Clear Scans</p>
+                </div>
+                <div className="text-center p-4 bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl border border-amber-200">
+                  <p className="text-2xl font-bold text-amber-700">{detectionRate}%</p>
+                  <p className="text-sm text-amber-600 font-medium">Detection Rate</p>
                 </div>
               </div>
 
-              {totalScans > 0 ? (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">COVID Detections</span>
-                    <span className="text-sm text-gray-600">
-                      {Math.round((covidScans / totalScans) * 100)}%
-                    </span>
-                  </div>
-                  <Progress 
-                    value={(covidScans / totalScans) * 100} 
-                    className="h-2"
-                    indicatorClassName="bg-red-500"
-                  />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Progress bars */}
+                <div className="space-y-4">
+                  <h3 className="font-medium text-gray-900">Tumor Type Distribution</h3>
+                  <div className="space-y-3">
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm font-medium text-blue-700">Pituitary</span>
+                        <span className="text-sm text-gray-600">
+                          {totalScans > 0 ? Math.round((pituitaryScans / totalScans) * 100) : 0}%
+                        </span>
+                      </div>
+                      <Progress 
+                        value={(pituitaryScans / totalScans) * 100} 
+                        className="h-2"
+                        indicatorClassName="bg-blue-500"
+                      />
+                    </div>
 
-                  <div className="flex items-center justify-between mt-4">
-                    <span className="text-sm font-medium">Viral Pneumonia</span>
-                    <span className="text-sm text-gray-600">
-                      {Math.round((viralScans / totalScans) * 100)}%
-                    </span>
-                  </div>
-                  <Progress 
-                    value={(viralScans / totalScans) * 100} 
-                    className="h-2"
-                    indicatorClassName="bg-yellow-500"
-                  />
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm font-medium text-purple-700">Glioma</span>
+                        <span className="text-sm text-gray-600">
+                          {totalScans > 0 ? Math.round((gliomaScans / totalScans) * 100) : 0}%
+                        </span>
+                      </div>
+                      <Progress 
+                        value={(gliomaScans / totalScans) * 100} 
+                        className="h-2"
+                        indicatorClassName="bg-purple-500"
+                      />
+                    </div>
 
-                  <div className="flex items-center justify-between mt-4">
-                    <span className="text-sm font-medium">Normal Results</span>
-                    <span className="text-sm text-gray-600">
-                      {Math.round((normalScans / totalScans) * 100)}%
-                    </span>
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm font-medium text-green-700">Meningioma</span>
+                        <span className="text-sm text-gray-600">
+                          {totalScans > 0 ? Math.round((meningiomaScans / totalScans) * 100) : 0}%
+                        </span>
+                      </div>
+                      <Progress 
+                        value={(meningiomaScans / totalScans) * 100} 
+                        className="h-2"
+                        indicatorClassName="bg-green-500"
+                      />
+                    </div>
                   </div>
-                  <Progress 
-                    value={(normalScans / totalScans) * 100} 
-                    className="h-2"
-                    indicatorClassName="bg-green-500"
-                  />
                 </div>
-              ) : (
-                <div className="text-center py-8">
-                  <Activity className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                  <p className="text-gray-500">No scan data available yet</p>
-                  <p className="text-sm text-gray-400 mt-1">Start by analyzing your first X-ray image</p>
+
+                {/* Doughnut chart */}
+                <div className="h-64">
+                  <Doughnut data={doughnutData} options={doughnutOptions} />
                 </div>
-              )}
+              </div>
             </CardContent>
           </Card>
         </div>
 
         {/* Results History with Chart */}
-        <Card>
+        <Card className="border-0 shadow-lg">
           <CardHeader>
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
                 <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5" />
-                  Scan History
+                  <TrendingUp className="h-5 w-5 text-blue-600" />
+                  Scan History & Analysis
                 </CardTitle>
                 <CardDescription>
-                  Your recent COVID-19 detection scan results
+                  Your recent brain MRI scan results and trends
                 </CardDescription>
               </div>
-              {/* {results.length > 0 && (
-                <Button variant="outline" size="sm">
-                  <Download className="h-4 w-4 mr-2" />
-                  Export Data
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="border-blue-200 text-blue-600 hover:bg-blue-50"
+                  onClick={() => window.location.href = '/services'}
+                >
+                  <PlusCircle className="h-4 w-4 mr-2" />
+                  New MRI Scan
                 </Button>
-              )} */}
+                {results.length > 0 && (
+                  <Button variant="outline" size="sm">
+                    <FileText className="h-4 w-4 mr-2" />
+                    Export Reports
+                  </Button>
+                )}
+              </div>
             </div>
           </CardHeader>
           <CardContent>
             {results.length > 0 ? (
-              <div className="space-y-6">
+              <div className="space-y-8">
+                {/* Bar Chart */}
                 <div className="h-80">
                   <Bar options={chartOptions} data={chartData} />
                 </div>
 
+                {/* Recent Scans */}
                 <div>
-                  <h3 className="font-medium mb-3">Recent Scans</h3>
+                  <h3 className="font-medium text-lg mb-4">Recent MRI Scans</h3>
                   <div className="space-y-3">
-                    {results.slice(0, 3).map((result, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <div className={`p-2 rounded-full ${
-                            result.case === 'covid' ? 'bg-red-100' : 
-                            result.case === 'viral' ? 'bg-yellow-100' : 'bg-green-100'
-                          }`}>
-                            <Activity className={`h-4 w-4 ${
-                              result.case === 'covid' ? 'text-red-600' : 
-                              result.case === 'viral' ? 'text-yellow-600' : 'text-green-600'
+                    {results.slice(0, 5).map((result, index) => (
+                      <div 
+                        key={index} 
+                        className="flex items-center justify-between p-4 bg-gradient-to-r from-white to-gray-50 rounded-xl border hover:shadow-md transition-shadow"
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className={`p-3 rounded-xl ${getCaseColor(result.case)}`}>
+                            <Brain className={`h-5 w-5 ${
+                              result.case === 'pituitary' ? 'text-blue-600' : 
+                              result.case === 'glioma' ? 'text-purple-600' : 
+                              result.case === 'meningioma' ? 'text-green-600' : 'text-gray-600'
                             }`} />
                           </div>
                           <div>
-                            <p className="font-medium">{result.case.charAt(0).toUpperCase() + result.case.slice(1)}</p>
-                            <p className="text-sm text-gray-500">
-                              {new Date(result.date).toLocaleDateString()}
+                            <p className="font-semibold text-gray-900">
+                              {getCaseDisplayName(result.case)}
                             </p>
+                            <div className="flex items-center gap-3 mt-1">
+                              <p className="text-sm text-gray-500">
+                                {new Date(result.date).toLocaleDateString('en-US', { 
+                                  year: 'numeric', 
+                                  month: 'short', 
+                                  day: 'numeric' 
+                                })}
+                              </p>
+                              <span className="text-xs text-gray-400">•</span>
+                              <p className="text-sm text-gray-500">
+                                {new Date(result.date).toLocaleTimeString('en-US', {
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </p>
+                            </div>
                           </div>
                         </div>
-                        <Badge variant={
-                          result.case === 'covid' ? 'destructive' : 
-                          result.case === 'viral' ? 'secondary' : 'default'
-                        }>
-                          {Math.round(result.confidence * 100)}% confidence
-                        </Badge>
+                        <div className="flex items-center gap-4">
+                          <Badge variant={getCaseBadgeVariant(result.case)} className="text-sm">
+                            {Math.round(result.confidence * 100)}% confidence
+                          </Badge>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            className="text-blue-600 hover:text-blue-700"
+                            onClick={() => {
+                              // Navigate to detailed report
+                              window.location.href = `/reports/${result._id}`;
+                            }}
+                          >
+                            View Report
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
+                  
+                  {results.length > 5 && (
+                    <div className="mt-6 text-center">
+                      <Button 
+                        variant="outline"
+                        onClick={() => window.location.href = '/history'}
+                      >
+                        View All Scans ({results.length})
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
             ) : (
               <div className="text-center py-12">
-                <BarChart3 className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                <h3 className="font-medium text-gray-900 mb-1">No scan history yet</h3>
-                <p className="text-gray-500 mb-4">Start by analyzing your first X-ray image</p>
-                <Button onClick={() => window.location.href = '/services'}>
+                <div className="inline-flex items-center justify-center w-20 h-20 bg-blue-100 rounded-full mb-4">
+                  <Brain className="h-10 w-10 text-blue-600" />
+                </div>
+                <h3 className="font-medium text-gray-900 text-lg mb-2">No MRI scans yet</h3>
+                <p className="text-gray-500 mb-6 max-w-md mx-auto">
+                  Start by analyzing your first brain MRI scan to detect tumors with 94% accuracy
+                </p>
+                <Button 
+                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                  onClick={() => window.location.href = '/services'}
+                >
                   <PlusCircle className="h-4 w-4 mr-2" />
-                  New Analysis
+                  Analyze First MRI
                 </Button>
               </div>
             )}
