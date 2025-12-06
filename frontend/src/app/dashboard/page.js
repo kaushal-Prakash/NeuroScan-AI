@@ -125,7 +125,7 @@ function Dashboard() {
 
   useEffect(() => {
     fetchUserData();
-  });
+  },[]);
 
   // Helper function for mock data
   const getMockResults = () => {

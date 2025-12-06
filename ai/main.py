@@ -12,7 +12,7 @@ app = Flask(__name__)
 CORS(app, origins=["http://localhost:3000"])
 
 # MongoDB connection
-MONGODB_URI = "mongodb://localhost:27017"  # Update with your MongoDB URI
+MONGODB_URI = "mongodb://localhost:27017/neuroscan_db"  # Update with your MongoDB URI
 DB_NAME = "neuroscan_db"  # Your database name
 
 # Initialize MongoDB variables
