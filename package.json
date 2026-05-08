@@ -2,9 +2,9 @@
   "name": "neuroscan-ai",
   "scripts": {
     "dev": "concurrently \"npm run ai\" \"npm run backend\" \"npm run frontend\"",
-    "ai": "cd ai && python app.py",
+    "ai": "set PYTHONIOENCODING=utf-8 && cd ai && venv\\Scripts\\python main.py",
     "backend": "cd backend && npm run dev",
-    "frontend": "cd frontend && npm start"
+    "frontend": "cd frontend && npm run dev"
   },
   "devDependencies": {
     "concurrently": "^8.0.1"
